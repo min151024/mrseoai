@@ -4,17 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SEO 改善AI</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <h1>Streamline your SEO Workflows</h1>
+    <p class="tagline">Build and explore super customizable AI-powered SEO analysis workflows without code.</p>
+    
     <h2>SEO 改善ツール</h2>
     <form method="post">
         <label for="url">分析するURLを入力：</label>
-        <input type="text" name="url" id="url" required>
-        <button type="submit">分析開始</button>
+        <input type="text" name="url" id="url" required placeholder="https://example.com">
+        
+        <div class="button-group">
+            <button type="submit">分析開始</button>
+            <a href="/result.html" class="secondary-button">過去の改善提案を見る</a>
+        </div>
     </form>
-    {% if result %}
-    <h3>💡 ChatGPTの改善提案</h3>
-    <p>{{ result }}</p>
-    {% endif %}
 </body>
 </html>
