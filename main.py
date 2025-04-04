@@ -21,10 +21,11 @@ SHEET_SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis
 SERVICE_ACCOUNT_FILE = 'credentials.json'
 SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4' 
 
+
 # Render上に環境変数がある場合、それをデコードして credentials.json を作成
 if "GOOGLE_CREDS_BASE64" in os.environ:
     with open("credentials.json", "wb") as f:
-        f.write(base64.b64decode(os.environ["GOOGLE_CREDS_BASE64"]))
+        f.write(base64.b64decode(os.getenv["GOOGLE_CREDS_BASE64"]))
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 
 
