@@ -41,7 +41,7 @@ def fetch_date(gsc_data):
     
     # Google Analytics データを取得
     today = datetime.today().date()
-    start_date = (today - datetime.timedelta(days=7)).isoformat()
+    start_date = (today - timedelta(days=7)).isoformat()
     end_date = today.isoformat()
     ga_data = fetch_ga_data(start_date, end_date)
 
@@ -217,7 +217,7 @@ def process_seo_improvement(site_url):
 
 
     # HTMLテンプレートにデータを渡して出力
-    result_html = render_template("result.html", table_html=table_html)
+    data = df_this_week.values.tolist() if df_this_week is not None else []
 
 # `result.html` に保存
     with open("templates/result.html", "w", encoding="utf-8") as f:
