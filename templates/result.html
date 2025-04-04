@@ -3,24 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO 改善案</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { color: #333; }
-        .suggestion { background: #f8f8f8; padding: 10px; margin: 10px 0; border-left: 5px solid #007bff; }
-    </style>
+    <title>SEO 改善提案</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>SEO 改善案</h1>
-    
-    {% if result %}
-        {% for suggestion in result %}
-            <div class="suggestion">
-                <p>{{ suggestion }}</p>
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>改善案がありません。</p>
-    {% endif %}
+    <h1>SEO 改善提案</h1>
+    <p><strong>対象URL：</strong> {{ site_url }}</p>
+
+    <h2>📊 スプレッドシートのデータ</h2>
+    <div>
+        {{ table_html | safe }}
+    </div>
+
+    <a href="/">戻る</a>
 </body>
 </html>

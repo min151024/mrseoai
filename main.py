@@ -1,6 +1,7 @@
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 from serp_api_utils import get_top_competitor_urls, get_meta_info_from_url
@@ -8,6 +9,8 @@ from chatgpt_utils import build_prompt, get_chatgpt_response
 import os
 import base64
 from googleapiclient.errors import HttpError
+from flask import render_template
+from ga_utils import fetch_ga_data
 
 
 # ==========
@@ -16,6 +19,7 @@ from googleapiclient.errors import HttpError
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
 SHEET_SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = 'credentials.json'
+SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4' 
 
 # Render上に環境変数がある場合、それをデコードして credentials.json を作成
 if "GOOGLE_CREDS_BASE64" in os.environ:
@@ -28,32 +32,84 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_F
 gc = gspread.authorize(credentials)
 
 
-SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4'  # ← スプレッドシートIDを自分のものに変更
+# Google Sheets API認証
+creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+service = build("sheets", "v4", credentials=creds)
+
+def fetch_date(gsc_data):
+    """Google Search ConsoleデータとGAデータをスプレッドシートに書き込む"""
+    
+    # Google Analytics データを取得
+    today = datetime.today().date()
+    start_date = (today - datetime.timedelta(days=7)).isoformat()
+    end_date = today.isoformat()
+    ga_data = fetch_ga_data(start_date, end_date)
+
+    # スプレッドシートのデータフォーマット
+    gsc_values = [["URL", "検索キーワード", "平均順位", "クリック数", "表示回数"]]
+    ga_values = [["検索キーワード", "流入経路", "ユーザー数", "イベント数", "コンバージョン数"]]
+
+    # GSCデータをリスト化
+    for row in gsc_data:
+        gsc_values.append([row["url"], row["query"], row["position"], row["clicks"], row["impressions"]])
+
+    # GAデータをリスト化
+    if ga_data is None or ga_data.empty:
+      print("⚠️ Google Analytics データが取得できませんでした。")
+      ga_values.append(["データなし", "", "", "", ""])
+    else:
+      for _, row in ga_data.iterrows():
+        ga_values.append([row["検索キーワード"], row["流入経路"], row["ユーザー数"], row["イベント数"], row["コンバージョン数"]])
+
+
+    # Google Sheetsに書き込み
+    sheet = service.spreadsheets()
+    sheet.values().update(
+        spreadsheetId=SPREADSHEET_ID,
+        range=f"SEO_Data!A1",
+        valueInputOption="RAW",
+        body={"values": gsc_values}
+    ).execute()
+
+    sheet.values().update(
+        spreadsheetId=SPREADSHEET_ID,
+        range=f"SEO_Data!G1",  # GAデータはG列から開始
+        valueInputOption="RAW",
+        body={"values": ga_values}
+    ).execute()
+
+    print("スプレッドシートにデータを出力しました！")
 
 def fetch_data(service, site_url, start_date, end_date):
+    """Google Search Console からデータを取得"""
+    request = {
+        'startDate': start_date.isoformat(),
+        'endDate': end_date.isoformat(),
+        'dimensions': ['query', 'page'],
+        'rowLimit': 1000
+    }
     try:
-        request = {
-            'startDate': start_date.isoformat(),
-            'endDate': end_date.isoformat(),
-            'dimensions': ['page'],
-            'rowLimit': 1000
-        }
         response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
         rows = response.get('rows', [])
 
-        if not rows:
-            print(f"⚠️ URL {site_url} のデータが見つかりませんでした。")
-            return pd.DataFrame(columns=['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+        # データを pandas の DataFrame に変換
+        data = []
+        for row in rows:
+            data.append([
+                row['keys'][0],  # URL
+                row.get('clicks', 0),
+                row.get('impressions', 0),
+                row.get('ctr', 0) * 100,  # CTR（% に変換）
+                row.get('position', 0)
+            ])
 
-        data = [
-            [row['keys'][0], row.get('clicks', 0), row.get('impressions', 0), row.get('ctr', 0) * 100, row.get('position', 0)]
-            for row in rows
-        ]
-        return pd.DataFrame(data, columns=['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+        df = pd.DataFrame(data, columns=['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+        return df
+    except HttpError as error:
+        print(f"❌ Google Search Console API エラー: {error}")
+        return pd.DataFrame(columns=['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
 
-    except HttpError as e:
-        print(f"🚨 Google Search Console の API エラー: {e}")
-        return None
+
     
 #----------------------------------------------------------
 
@@ -94,6 +150,7 @@ def process_seo_improvement(site_url):
     sheet_suggestions.append_row(['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
     for row in df_this_week.values.tolist():
         sheet_suggestions.append_row(row)
+
 
     # 順位変化を計算
     merged_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
@@ -152,8 +209,29 @@ def process_seo_improvement(site_url):
     </body>
     </html>
     """
+    data = df_this_week.values.tolist() 
+    table_html = "<table border='1'><tr><th>URL</th><th>検索クエリ</th><th>クリック数</th><th>表示回数</th><th>CTR</th><th>平均順位</th></tr>"
+    for row in data:
+        table_html += "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>"
+    table_html += "</table>"
 
+
+    # HTMLテンプレートにデータを渡して出力
+    result_html = render_template("result.html", table_html=table_html)
+
+# `result.html` に保存
     with open("templates/result.html", "w", encoding="utf-8") as f:
-        f.write(result_html)
+      f.write(result_html)
 
-    return response
+    print("✅ HTMLファイルに出力しました。")
+
+# スプレッドシートに今週のデータを書き込む
+    if df_this_week is not None and not df_this_week.empty:
+     sheet_suggestions.clear()
+     sheet_suggestions.append_row(['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+     for row in df_this_week.values.tolist():
+        sheet_suggestions.append_row(row)
+    else:
+     print("❌ Google Search Console のデータが取得できませんでした。")
+
+    return result_html
