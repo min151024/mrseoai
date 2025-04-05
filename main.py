@@ -16,10 +16,7 @@ from ga_utils import fetch_ga_data
 # ==========
 # 認証部分
 # ==========
-SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
-SHEET_SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = 'credentials.json'
-SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4' 
 
 
 # Render上に環境変数がある場合、それをデコードして credentials.json を作成
@@ -28,6 +25,10 @@ if "GOOGLE_CREDS_BASE64" in os.environ:
         f.write(base64.b64decode(os.getenv("GOOGLE_CREDS_BASE64")))
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT_FILE
 
+    
+SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4' 
+SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
+SHEET_SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
 # credentials.json を使って認証
 credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SHEET_SCOPES)
