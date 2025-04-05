@@ -5,7 +5,7 @@ import base64
 import pandas as pd
 
 # Google Analyticsの認証
-GA_PROPERTY_ID = "YOUR_GA4_PROPERTY_ID"
+GA_PROPERTY_ID = "483491280"
 SERVICE_ACCOUNT_FILE = "ga_credentials.json"
 
 if "GA_CREDS_BASE64" in os.environ:
