@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SEO 改善AI</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h1>Streamline your SEO Workflows</h1>
     <p class="tagline">Build and explore super customizable AI-powered SEO analysis workflows without code.</p>
     
     <h2>SEO 改善ツール</h2>
-    <form method="post">
+    <form method="post" action="/">
         <label for="url">分析するURLを入力：</label>
         <input type="text" name="url" id="url" required placeholder="https://example.com">
         
@@ -20,5 +20,12 @@
             <a href="/result.html" class="secondary-button">過去の改善提案を見る</a>
         </div>
     </form>
+
+    {% if result %}
+    <div class="result">
+        <h3>分析結果：</h3>
+        <pre>{{ result }}</pre>
+    </div>
+    {% endif %}
 </body>
 </html>
