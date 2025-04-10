@@ -9,9 +9,9 @@ import pandas as pd
 GA_PROPERTY_ID = "483491280"
 SERVICE_ACCOUNT_FILE = "ga_credentials.json"
 
-if "GA_CREDS_BASE64" in os.environ:
+if "GOOGLE_CREDS_BASE64" in os.environ:
     with open(SERVICE_ACCOUNT_FILE, "wb") as f:
-        f.write(base64.b64decode(os.environ["GA_CREDS_BASE64"]))
+        f.write(base64.b64decode(os.environ["GOOGLE_CREDS_BASE64"]))
 
 credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
 client = BetaAnalyticsDataClient()
