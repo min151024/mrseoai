@@ -21,7 +21,9 @@ SERVICE_ACCOUNT_FILE = 'credentials.json'
 # Render上に環境変数がある場合、それをデコードして credentials.json を作成
 if "GOOGLE_CREDS_BASE64" in os.environ:
     with open(SERVICE_ACCOUNT_FILE, "wb") as f:
-        f.write(base64.b64decode(os.getenv("GOOGLE_CREDS_BASE64")))
+        f.write(base64.b64decode(os.environ("GOOGLE_CREDS_BASE64")))
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 
 SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4'
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
