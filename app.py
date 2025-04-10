@@ -1,3 +1,4 @@
+import prepare_credentials
 from flask import Flask, request, render_template
 from main import process_seo_improvement
 import os
