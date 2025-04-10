@@ -1,5 +1,6 @@
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import RunReportRequest, DateRange, Metric, Dimension
+from google.oauth2 import service_account
 import os
 import base64
 import pandas as pd
@@ -11,8 +12,8 @@ SERVICE_ACCOUNT_FILE = "ga_credentials.json"
 if "GA_CREDS_BASE64" in os.environ:
     with open(SERVICE_ACCOUNT_FILE, "wb") as f:
         f.write(base64.b64decode(os.environ["GA_CREDS_BASE64"]))
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT_FILE
 
+credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
 client = BetaAnalyticsDataClient()
 
 def fetch_ga_data(start_date: str, end_date: str):
