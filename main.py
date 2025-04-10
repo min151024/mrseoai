@@ -18,24 +18,20 @@ from ga_utils import fetch_ga_data
 # ==========
 SERVICE_ACCOUNT_FILE = 'credentials.json'
 
-
 # Render上に環境変数がある場合、それをデコードして credentials.json を作成
 if "GOOGLE_CREDS_BASE64" in os.environ:
     with open(SERVICE_ACCOUNT_FILE, "wb") as f:
         f.write(base64.b64decode(os.getenv("GOOGLE_CREDS_BASE64")))
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT_FILE
 
-    
-SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4' 
+SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4'
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
 SHEET_SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# credentials.json を使って認証
+# gspread用の認証
 credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SHEET_SCOPES)
 gc = gspread.authorize(credentials)
 
-
-# Google Sheets API認証
+# Google Sheets API用の認証
 creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=["https://www.googleapis.com/auth/spreadsheets"])
 service = build("sheets", "v4", credentials=creds)
 
