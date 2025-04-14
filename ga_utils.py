@@ -7,7 +7,7 @@ import pandas as pd
 
 # Google Analyticsの認証
 GA_PROPERTY_ID = "483491280"
-SERVICE_ACCOUNT_FILE = "ga_credentials.json"
+SERVICE_ACCOUNT_FILE = "credentials.json"
 
 if "GOOGLE_CREDS_BASE64" in os.environ:
     with open(SERVICE_ACCOUNT_FILE, "wb") as f:
