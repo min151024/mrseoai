@@ -6,17 +6,35 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # ChatGPT用プロンプト生成
-def build_prompt(target_url, competitors_info):
+def build_prompt(target_url, competitors_info, ga_data):
+    """対象URL、競合ページ情報、GAデータからChatGPT用のプロンプトを作成する"""
+
+    # 競合ページ情報をテキスト化
+    competitors_text = ""
+    for comp in competitors_info:
+        title = comp.get("title", "タイトルなし")
+        description = comp.get("description", "ディスクリプションなし")
+        competitors_text += f"・タイトル: {title}\n  ディスクリプション: {description}\n\n"
+
+    # Google Analyticsデータをテキスト化
+    if ga_data is not None and not ga_data.empty:
+        ga_text = ga_data.to_string(index=False)
+    else:
+        ga_text = "Google Analytics データなし"
+
+    # 最終プロンプト組み立て
     prompt = f"""
-以下は、順位が下がったWebページ「{target_url}」に対して、競合ページのタイトルとメタ情報の一覧です。
-これらと比較して、{target_url} のタイトル・メタ情報の改善点やリライト案を具体的に提案してください。
+対象ページ: {target_url}
 
-競合ページ情報:
+【競合ページのメタ情報】
+{competitors_text}
+
+【対象ページのGoogle Analyticsデータ】
+{ga_text}
+
+上記を参考にして、対象ページのタイトルとメタディスクリプションの改善案を日本語で提案してください。
+改善案は、検索順位向上と流入ユーザー数の増加を意識して作成してください。
 """
-    for i, info in enumerate(competitors_info, start=1):
-        prompt += f"\n{i}. タイトル: {info['title']}\nメタディスクリプション: {info['meta_description']}\nURL: {info['url']}\n"
-
-    prompt += "\n\n改善提案をお願いします。"
     return prompt
 
 
