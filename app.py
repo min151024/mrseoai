@@ -12,6 +12,9 @@ def index():
         target_url = request.form["url"]
         result = process_seo_improvement(target_url)  # ChatGPTの回答を取得
     return render_template("index.html", result=result)  # 結果を渡す
+@app.route('/result')
+def result():
+    return render_template('result.html', site_url="（前回のURL）", table_html="（前回の表データ）")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000, debug=True)
