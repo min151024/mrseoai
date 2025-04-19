@@ -160,9 +160,11 @@ def process_seo_improvement(site_url):
         print(f"❌ 順位変化計算失敗: {e}")
         return "エラー: 順位計算失敗"
 
-    if dropped_df.empty:
-        print("❌ 順位下がったページがありません。")
-        return "エラー: 順位下がったページなし"
+    # if dropped_df.empty:
+    #     print("❌ 順位下がったページがありません。")
+    #     return "エラー: 順位下がったページなし"
+
+
 
     # ⑥ ターゲットURL抽出
     target_url = dropped_df.iloc[0]['URL']
