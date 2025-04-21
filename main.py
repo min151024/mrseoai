@@ -170,6 +170,25 @@ def process_seo_improvement(site_url):
     merged_df['順位変化'] = merged_df['平均順位_今週'] - merged_df['平均順位_先週']
     dropped_df = merged_df[merged_df['順位変化'] > 0].sort_values(by='順位変化', ascending=False)
 
+    # 💡 スプレッドシートに「順位が下がったページ」シートを更新
+    try:
+      sheet_dropped = spreadsheet.worksheet("順位が下がったページ")
+      print("✅ 『順位が下がったページ』シートを使用します。")
+    except gspread.exceptions.WorksheetNotFound:
+      sheet_dropped = spreadsheet.add_worksheet(title="順位が下がったページ", rows="100", cols="20")
+      print("🆕 『順位が下がったページ』シートを新規作成しました。")
+
+# 上書きでクリア＆データ追加
+    sheet_dropped.clear()
+    sheet_dropped.append_row(['URL', '平均順位（先週）', '平均順位（今週）', '順位変化'])
+    for _, row in dropped_df.iterrows():
+        sheet_dropped.append_row([
+            row['URL'],
+            row['平均順位_先週'],
+            row['平均順位_今週'],
+            row['順位変化']
+        ])
+
     if dropped_df.empty:
         print("❌ 順位が下がったページが見つかりませんでした。")
         return
