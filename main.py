@@ -67,14 +67,14 @@ def fetch_date(gsc_data):
     sheet = service.spreadsheets()
     sheet.values().update(
         spreadsheetId=SPREADSHEET_ID,
-        range=f"SEO_Data!A1",
+        range=f"週次結果!A1",
         valueInputOption="RAW",
         body={"values": gsc_values}
     ).execute()
 
     sheet.values().update(
         spreadsheetId=SPREADSHEET_ID,
-        range=f"SEO_Data!G1",  # GAデータはG列から開始
+        range=f"週次結果!G1",  # GAデータはG列から開始
         valueInputOption="RAW",
         body={"values": ga_values}
     ).execute()
