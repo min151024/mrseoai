@@ -39,47 +39,69 @@ service = build("sheets", "v4", credentials=creds)
 
 def fetch_date(gsc_data):
     """Google Search ConsoleデータとGAデータをスプレッドシートに書き込む"""
-    
+
     # Google Analytics データを取得
     today = datetime.today().date()
     start_date = (today - timedelta(days=7)).isoformat()
     end_date = today.isoformat()
     ga_data = fetch_ga_data(start_date, end_date)
 
-    # スプレッドシートのデータフォーマット
+    # Spreadsheet 認証と取得
+    spreadsheet = gc.open_by_key(SPREADSHEET_ID)
+
+    # 「SEO_Data」シートの取得（なければ作成）
+    try:
+        sheet = spreadsheet.worksheet("SEO_Data")
+        print("✅ 『SEO_Data』シートを使用します。")
+    except gspread.exceptions.WorksheetNotFound:
+        sheet = spreadsheet.add_worksheet(title="SEO_Data", rows="100", cols="20")
+        print("🆕 『SEO_Data』シートを新規作成しました。")
+
+    # クリア
+    sheet.clear()
+
+    # GSCヘッダー
     gsc_values = [["URL", "検索キーワード", "平均順位", "クリック数", "表示回数"]]
+
+    # GSCデータが空でない場合に追加
+    if gsc_data:
+        print(f"📊 GSCデータ件数: {len(gsc_data)}")
+        for row in gsc_data:
+            gsc_values.append([
+                row.get("url", "なし"),
+                row.get("query", "なし"),
+                row.get("position", "なし"),
+                row.get("clicks", "なし"),
+                row.get("impressions", "なし")
+            ])
+    else:
+        print("⚠️ GSCデータが空でした。")
+        gsc_values.append(["データなし", "", "", "", ""])
+
+    # GSCデータ書き込み（A1から）
+    sheet.update(values=gsc_values, range_name="A1")
+
+    # GAヘッダー
     ga_values = [["検索キーワード", "流入経路", "ユーザー数", "イベント数", "コンバージョン数"]]
 
-    # GSCデータをリスト化
-    for row in gsc_data:
-        gsc_values.append([row["url"], row["query"], row["position"], row["clicks"], row["impressions"]])
-
-    # GAデータをリスト化
     if ga_data is None or ga_data.empty:
-      print("⚠️ Google Analytics データが取得できませんでした。")
-      ga_values.append(["データなし", "", "", "", ""])
+        print("⚠️ Google Analytics データが取得できませんでした。")
+        ga_values.append(["データなし", "", "", "", ""])
     else:
-      for _, row in ga_data.iterrows():
-        ga_values.append([row["検索キーワード"], row["流入経路"], row["ユーザー数"], row["イベント数"], row["コンバージョン数"]])
+        for _, row in ga_data.iterrows():
+            ga_values.append([
+                row.get("検索キーワード", "なし"),
+                row.get("流入経路", "なし"),
+                row.get("ユーザー数", 0),
+                row.get("イベント数", 0),
+                row.get("コンバージョン数", 0)
+            ])
 
+    # GAデータ書き込み（G1から）
+    sheet.update(values=ga_values, range_name="G1")
 
-    # Google Sheetsに書き込み
-    sheet = service.spreadsheets()
-    sheet.values().update(
-        spreadsheetId=SPREADSHEET_ID,
-        range=f"週次結果!A1",
-        valueInputOption="RAW",
-        body={"values": gsc_values}
-    ).execute()
+    print("✅ スプレッドシートにデータを出力しました！")
 
-    sheet.values().update(
-        spreadsheetId=SPREADSHEET_ID,
-        range=f"週次結果!G1",  # GAデータはG列から開始
-        valueInputOption="RAW",
-        body={"values": ga_values}
-    ).execute()
-
-    print("スプレッドシートにデータを出力しました！")
 
 def fetch_data(service, site_url, start_date, end_date):
     """Google Search Console からデータを取得"""
@@ -170,7 +192,7 @@ def process_seo_improvement(site_url):
     merged_df['順位変化'] = merged_df['平均順位_今週'] - merged_df['平均順位_先週']
     dropped_df = merged_df[merged_df['順位変化'] > 0].sort_values(by='順位変化', ascending=False)
 
-    # 💡 スプレッドシートに「順位が下がったページ」シートを更新
+# 💡 スプレッドシートに「順位が下がったページ」シートを更新
     try:
       sheet_dropped = spreadsheet.worksheet("順位が下がったページ")
       print("✅ 『順位が下がったページ』シートを使用します。")
@@ -268,3 +290,5 @@ def process_seo_improvement(site_url):
 
     return result_html
 
+if __name__ == "__main__":
+    process_seo_improvement("https://mrseoai.com")
