@@ -115,135 +115,137 @@ def fetch_data(service, site_url, start_date, end_date):
 #----------------------------------------------------------
 
 def process_seo_improvement(site_url):
+    """指定したURLのSEO改善を実行"""
     print(f"🚀 SEO改善を開始: {site_url}")
 
-    # ① Google Search Console認証
-    try:
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
-        print("✅ GSC認証完了")
-    except Exception as e:
-        print(f"❌ GSC認証失敗: {e}")
-        return "エラー: GSC認証失敗"
+    # Google Search Console API 認証
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
+    service = build('searchconsole', 'v1', credentials=credentials)
 
-    # ② Search Console APIサーバー接続
-    try:
-        service = build('searchconsole', 'v1', credentials=credentials)
-        print("✅ Search Console サービス作成成功")
-    except Exception as e:
-        print(f"❌ Search Console サービス作成失敗: {e}")
-        return "エラー: サービス作成失敗"
-
-    # ③ 日付計算
+    # 日付設定（過去7日間とその前の7日間）
     today = datetime.today().date()
     this_week_start = today - timedelta(days=7)
     this_week_end = today
     last_week_start = today - timedelta(days=14)
     last_week_end = today - timedelta(days=7)
-    print("✅ 日付設定完了")
 
-    # ④ Search Consoleデータ取得
-    try:
-        df_this_week = fetch_data(service, site_url, this_week_start, this_week_end)
-        df_last_week = fetch_data(service, site_url, last_week_start, last_week_end)
-        print(f"✅ GSCデータ取得完了。今週: {len(df_this_week)}行、先週: {len(df_last_week)}行")
-    except Exception as e:
-        print(f"❌ GSCデータ取得失敗: {e}")
-        return "エラー: データ取得失敗"
+    # Google Search Console からデータ取得
+    df_this_week = fetch_data(service, site_url, this_week_start, this_week_end)
+    df_last_week = fetch_data(service, site_url, last_week_start, last_week_end)
 
-    # ⑤ 順位が下がったページ抽出
+
+    print(df_this_week.head())
+
+    # Google Sheets 取得
+    spreadsheet = gc.open_by_key(SPREADSHEET_ID)
+
     try:
-        merged_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
-        merged_df['順位変化'] = merged_df['平均順位_今週'] - merged_df['平均順位_先週']
-        dropped_df = merged_df[merged_df['順位変化'] > 0].sort_values(by='順位変化', ascending=False)
-        print(f"✅ 順位下がったページ数: {len(dropped_df)}")
-    except Exception as e:
-        print(f"❌ 順位変化計算失敗: {e}")
-        return "エラー: 順位計算失敗"
+        sheet_suggestions = spreadsheet.worksheet("改善案")
+        print("✅ 既存の『改善案』シートを使用します。")
+    except gspread.exceptions.WorksheetNotFound:
+        sheet_suggestions = spreadsheet.add_worksheet(title="改善案", rows="100", cols="20")
+        print("🆕 新しく『改善案』シートを作成しました。")
+
+    # スプレッドシートに今週のデータを書き込む
+    sheet_suggestions.clear()
+    sheet_suggestions.append_row(['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+    for row in df_this_week.values.tolist():
+        sheet_suggestions.append_row(row)
+
+    gsc_data_for_export = []
+    for _, row in df_this_week.iterrows():
+     gsc_data_for_export.append({
+        "url": row["URL"],
+        "query": "（仮）",  # query がないので仮に埋める
+        "position": row["平均順位"],
+        "clicks": row["クリック数"],
+        "impressions": row["表示回数"]
+    })
+
+# スプレッドシート書き出し実行
+    fetch_date(gsc_data_for_export)
+
+    # 順位変化を計算
+    merged_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
+    merged_df['順位変化'] = merged_df['平均順位_今週'] - merged_df['平均順位_先週']
+    dropped_df = merged_df[merged_df['順位変化'] > 0].sort_values(by='順位変化', ascending=False)
 
     if dropped_df.empty:
-        print("❌ 順位下がったページがありません。")
-        return "エラー: 順位下がったページなし"
+        print("❌ 順位が下がったページが見つかりませんでした。")
+        return
 
-    # ⑥ ターゲットURL抽出
+    # 順位が下がったページの中から1ページを選ぶ
     target_url = dropped_df.iloc[0]['URL']
-    print(f"🎯 対象ページURL抽出: {target_url}")
+    print(f"🎯 対象ページ: {target_url}")
 
-    # ⑦ 競合情報取得
+    # メタ情報・キーワード取得
     try:
         meta_info = get_meta_info_from_url(target_url)
         keyword = meta_info.get("title") or meta_info.get("description") or "SEO"
         print(f"🔍 抽出されたキーワード: {keyword}")
     except Exception as e:
-        print(f"⚠️ メタ情報の取得失敗: {e}")
-        return "エラー: メタ情報取得失敗"
+        print(f"⚠️ メタ情報の取得に失敗: {e}")
+        return
 
+    # 競合ページ取得
     try:
         top_urls = get_top_competitor_urls(keyword)
         competitors_info = [get_meta_info_from_url(url) for url in top_urls if url]
-        print(f"✅ 競合ページ取得完了: {len(competitors_info)}件")
     except Exception as e:
-        print(f"⚠️ 競合ページ取得失敗: {e}")
+        print(f"⚠️ 競合ページの取得に失敗: {e}")
         competitors_info = []
 
-    # ⑧ ChatGPTに改善案依頼
+    # ChatGPT に改善案を依頼
     try:
-        from ga_utils import fetch_ga_data
-        start_date = (datetime.today() - timedelta(days=7)).isoformat()
-        end_date = datetime.today().isoformat()
-        ga_data = fetch_ga_data(start_date, end_date)
-        print("✅ GAデータ取得完了")
-
-        from chatgpt_utils import build_prompt, get_chatgpt_response
-        prompt = build_prompt(target_url, competitors_info, ga_data)
+        prompt = build_prompt(target_url, competitors_info)
         response = get_chatgpt_response(prompt)
-        print(f"💡 ChatGPT改善案取得完了")
+        print("💡 ChatGPT改善案:\n", response)
     except Exception as e:
         print(f"⚠️ ChatGPTへのリクエスト失敗: {e}")
-        return "エラー: ChatGPTリクエスト失敗"
 
-    return response
+        response = "ChatGPT からの改善提案を取得できませんでした。"
 
-
-#         result_html = f"""
-#     <!DOCTYPE html>
-#     <html lang="ja">
-#     <head>
-#         <meta charset="UTF-8">
-#         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-#         <title>SEO 改善提案</title>
-#     </head>
-#     <body>
-#         <h2>SEO 改善提案</h2>
-#         <p><strong>対象URL：</strong> {target_url}</p>
-#         <h3>💡 ChatGPTの改善提案</h3>
-#         <p>{response}</p>
-#         <a href="/">戻る</a>
-#     </body>
-#     </html>
-#     """
-#     data = df_this_week.values.tolist() 
-#     table_html = "<table border='1'><tr><th>URL</th><th>検索クエリ</th><th>クリック数</th><th>表示回数</th><th>CTR</th><th>平均順位</th></tr>"
-#     for row in data:
-#         table_html += "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>"
-#     table_html += "</table>"
+        result_html = f"""
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SEO 改善提案</title>
+    </head>
+    <body>
+        <h2>SEO 改善提案</h2>
+        <p><strong>対象URL：</strong> {target_url}</p>
+        <h3>💡 ChatGPTの改善提案</h3>
+        <p>{response}</p>
+        <a href="/">戻る</a>
+    </body>
+    </html>
+    """
+    data = df_this_week.values.tolist() 
+    table_html = "<table border='1'><tr><th>URL</th><th>検索クエリ</th><th>クリック数</th><th>表示回数</th><th>CTR</th><th>平均順位</th></tr>"
+    for row in data:
+        table_html += "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>"
+    table_html += "</table>"
 
 
-#     # HTMLテンプレートにデータを渡して出力
-#     data = df_this_week.values.tolist() if df_this_week is not None else []
+    # HTMLテンプレートにデータを渡して出力
+    data = df_this_week.values.tolist() if df_this_week is not None else []
 
-# # `result.html` に保存
-#     with open("templates/result.html", "w", encoding="utf-8") as f:
-#       f.write(result_html)
+# `result.html` に保存
+    with open("templates/result.html", "w", encoding="utf-8") as f:
+      f.write(result_html)
 
-#     print("✅ HTMLファイルに出力しました。")
+    print("✅ HTMLファイルに出力しました。")
 
-# # スプレッドシートに今週のデータを書き込む
-#     if df_this_week is not None and not df_this_week.empty:
-#      sheet_suggestions.clear()
-#      sheet_suggestions.append_row(['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
-#      for row in df_this_week.values.tolist():
-#         sheet_suggestions.append_row(row)
-#     else:
-#      print("❌ Google Search Console のデータが取得できませんでした。")
+# スプレッドシートに今週のデータを書き込む
+    if df_this_week is not None and not df_this_week.empty:
+     sheet_suggestions.clear()
+     sheet_suggestions.append_row(['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+     for row in df_this_week.values.tolist():
+        sheet_suggestions.append_row(row)
+    else:
+     print("❌ Google Search Console のデータが取得できませんでした。")
 
-#     return result_html
+    return result_html
+
