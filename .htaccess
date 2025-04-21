@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# HTTP → HTTPS にリダイレクト
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# www → non-www にリダイレクト（任意で変更可）
+RewriteCond %{HTTP_HOST} ^www\.mrseoai\.com [NC]
+RewriteRule ^(.*)$ https://mrseoai.com/$1 [L,R=301]

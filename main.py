@@ -51,11 +51,11 @@ def fetch_date(gsc_data):
 
     # 「SEO_Data」シートの取得（なければ作成）
     try:
-        sheet = spreadsheet.worksheet("SEO_Data")
-        print("✅ 『SEO_Data』シートを使用します。")
+        sheet = spreadsheet.worksheet("順位が下がったページ")
+        print("✅ 『順位が下がったページ』シートを使用します。")
     except gspread.exceptions.WorksheetNotFound:
         sheet = spreadsheet.add_worksheet(title="SEO_Data", rows="100", cols="20")
-        print("🆕 『SEO_Data』シートを新規作成しました。")
+        print("🆕 『順位が下がったページ』シートを新規作成しました。")
 
     # クリア
     sheet.clear()
@@ -155,6 +155,10 @@ def process_seo_improvement(site_url):
     df_this_week = fetch_data(service, site_url, this_week_start, this_week_end)
     df_last_week = fetch_data(service, site_url, last_week_start, last_week_end)
 
+    print("last_week rows:", len(df_last_week))
+    print("this_week rows:", len(df_this_week))
+
+
 
     print(df_this_week.head())
 
@@ -213,11 +217,16 @@ def process_seo_improvement(site_url):
 
     if dropped_df.empty:
         print("❌ 順位が下がったページが見つかりませんでした。")
-        return
 
-    # 順位が下がったページの中から1ページを選ぶ
-    target_url = dropped_df.iloc[0]['URL']
-    print(f"🎯 対象ページ: {target_url}")
+        # 順位が最も低いページを代わりに選ぶ
+        all_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
+        worst_page = all_df.sort_values(by='平均順位_今週', ascending=False).iloc[0]
+        target_url = worst_page['URL']
+        print(f"🎯 順位が下がったページがないため、平均順位が最も悪いページを対象に設定: {target_url}")
+    else:
+        # 順位が下がったページの中から1ページを選ぶ
+        target_url = dropped_df.iloc[0]['URL']
+        print(f"🎯 順位が下がったページの中から対象ページを設定: {target_url}")
 
     # メタ情報・キーワード取得
     try:
@@ -227,6 +236,7 @@ def process_seo_improvement(site_url):
     except Exception as e:
         print(f"⚠️ メタ情報の取得に失敗: {e}")
         return
+
 
     # 競合ページ取得
     try:
