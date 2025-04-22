@@ -216,17 +216,19 @@ def process_seo_improvement(site_url):
         ])
 
     if dropped_df.empty:
-        print("❌ 順位が下がったページが見つかりませんでした。")
+      print("❌ 順位が下がったページが見つかりませんでした。")
 
-        # 順位が最も低いページを代わりに選ぶ
-        all_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
-        worst_page = all_df.sort_values(by='平均順位_今週', ascending=False).iloc[0]
-        target_url = worst_page['URL']
-        print(f"🎯 順位が下がったページがないため、平均順位が最も悪いページを対象に設定: {target_url}")
-    else:
-        # 順位が下がったページの中から1ページを選ぶ
-        target_url = dropped_df.iloc[0]['URL']
-        print(f"🎯 順位が下がったページの中から対象ページを設定: {target_url}")
+    all_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
+
+    if all_df.empty:
+      print("⚠️ データがまったく存在しないため、改善対象ページを選べません。")
+      return "<p>データが不足しているため改善提案を表示できませんでした。</p>"
+
+    # 正常に処理できる場合だけ実行
+    worst_page = all_df.sort_values(by='平均順位_今週', ascending=False).iloc[0]
+    target_url = worst_page['URL']
+    print(f"🎯 順位が下がったページがないため、平均順位が最も悪いページを対象に設定: {target_url}")
+
 
     # メタ情報・キーワード取得
     try:
