@@ -1,16 +1,23 @@
-import prepare_credentials
+from urllib.parse import urlparse
 from flask import Flask, request, render_template
 from main import process_seo_improvement
-import os
+
 
 app = Flask(__name__)
+
+def to_domain_property(url):
+    """http(s)://www.などを sc-domain:ドメイン名 に変換"""
+    parsed = urlparse(url)
+    domain = parsed.hostname.replace("www.", "") 
+    return f"sc-domain:{domain}"
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None  # 初期状態では結果なし
     if request.method == "POST":
-        target_url = request.form["url"]
-        result = process_seo_improvement(target_url)  # ChatGPTの回答を取得
+        input_url = request.form["url"]
+        site_url = to_domain_property(input_url)  
+        result = process_seo_improvement(site_url)  # ドメインプロパティ形式で渡す
     return render_template("index.html", result=result)  # 結果を渡す
 @app.route('/result')
 def result():
