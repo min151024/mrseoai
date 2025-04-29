@@ -1,6 +1,7 @@
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
-from google.analytics.data_v1beta.types import RunReportRequest, DateRange, Metric, Dimension
+from google.analytics.data_v1beta.types import RunReportRequest, DateRange, Metric, Dimension, Filter, FilterExpression
 from google.oauth2 import service_account
+from urllib.parse import urlparse
 import os
 import base64
 import pandas as pd
@@ -14,33 +15,39 @@ if "GOOGLE_CREDS_BASE64" in os.environ:
         f.write(base64.b64decode(os.environ["GOOGLE_CREDS_BASE64"]))
 
 credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
-client = BetaAnalyticsDataClient()
+client = BetaAnalyticsDataClient(credentials=credentials)
 
-def fetch_ga_data(start_date: str, end_date: str):
-    """Google Analytics からデータを取得"""
-    
+def extract_path_from_url(full_url: str) -> str:
+    """フルURLからパスだけを抽出"""
+    parsed_url = urlparse(full_url)
+    return parsed_url.path or "/"
+
+def fetch_ga_conversion_for_url(start_date: str, end_date: str, full_url: str):
+    """指定したフルURLに対応するパスのコンバージョン数を取得"""
+    page_path = extract_path_from_url(full_url)
+
     request = RunReportRequest(
         property=f"properties/{GA_PROPERTY_ID}",
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
-        dimensions=[
-            Dimension(name="searchTerm"),  # 検索キーワード
-            Dimension(name="sessionDefaultChannelGrouping")  # 流入チャネル
-        ],
-        metrics=[
-            Metric(name="activeUsers"),  # アクティブユーザー数
-            Metric(name="eventCount"),   # イベント数（コンバージョン含む）
-            Metric(name="conversions")   # コンバージョン数
-        ]
+        dimensions=[Dimension(name="pagePath")],
+        metrics=[Metric(name="conversions")],
+        dimension_filter=FilterExpression(
+            filter=Filter(
+                field_name="pagePath",
+                string_filter={"match_type": "EXACT", "value": page_path}
+            )
+        )
     )
 
     response = client.run_report(request)
-    
-    # データを pandas DataFrame に変換
+
     data = []
     for row in response.rows:
-        data.append([row.dimension_values[0].value, row.dimension_values[1].value,
-                     int(row.metric_values[0].value), int(row.metric_values[1].value),
-                     int(row.metric_values[2].value)])
-    
-    df = pd.DataFrame(data, columns=["検索キーワード", "流入経路", "ユーザー数", "イベント数", "コンバージョン数"])
+        data.append([row.dimension_values[0].value, int(row.metric_values[0].value)])
+
+    df = pd.DataFrame(data, columns=["URL", "コンバージョン数"])
     return df
+
+# 例:
+# df = fetch_ga_conversion_for_url("2024-04-01", "2024-04-28", "https://example.com/page1")
+# print(df)

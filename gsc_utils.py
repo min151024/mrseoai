@@ -24,14 +24,21 @@ def fetch_gsc_data(service, site_url, start_date, end_date):
         rows = response.get('rows', [])
         data = []
         for row in rows:
+            keys = row.get('keys', [])
+            query = keys[0] if len(keys) > 0 else ''
+            page = keys[1] if len(keys) > 1 else ''
+
             data.append([
-                row['keys'][0],
+                page,                          # URL
                 row.get('clicks', 0),
                 row.get('impressions', 0),
-                row.get('ctr', 0) * 100,
-                row.get('position', 0)
+                round(row.get('ctr', 0) * 100, 2),  # CTR（%）
+                round(row.get('position', 0), 2)    # 平均順位
             ])
-        return pd.DataFrame(data, columns=['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+
+        df = pd.DataFrame(data, columns=['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+        return df
+
     except HttpError as error:
         print(f"❌ GSC API エラー: {error}")
         return pd.DataFrame(columns=['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])

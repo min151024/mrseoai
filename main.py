@@ -1,68 +1,75 @@
-
 import pandas as pd
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 from serp_api_utils import get_top_competitor_urls, get_meta_info_from_url
 from chatgpt_utils import build_prompt, get_chatgpt_response
-from ga_utils import fetch_ga_data
+from ga_utils import fetch_ga_conversion_for_url
 from gsc_utils import get_search_console_service, fetch_gsc_data
 from sheet_utils import (
     get_spreadsheet,
     get_or_create_worksheet,
-    update_sheet,
-    write_gsc_data_to_sheet,
-    write_ga_data_to_sheet
+    update_sheet
 )
 
 SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4'
 
+def extract_path_from_url(full_url: str) -> str:
+    parsed_url = urlparse(full_url)
+    return parsed_url.path or "/"
+
 def process_seo_improvement(site_url):
-    print(f"🚀 SEO改善を開始: {site_url}")
+    print(f"\U0001F680 SEO改善を開始: {site_url}")
 
     today = datetime.today().date()
-    this_week_start = today - timedelta(days=7)
-    this_week_end = today
-    last_week_start = today - timedelta(days=14)
-    last_week_end = today - timedelta(days=7)
+    yesterday = today - timedelta(days=1)
+
+    this_week_start = yesterday - timedelta(days=6)
+    this_week_end = yesterday
+
+    last_week_start = yesterday - timedelta(days=13)
+    last_week_end = yesterday - timedelta(days=7)
 
     service = get_search_console_service()
     df_this_week = fetch_gsc_data(service, site_url, this_week_start, this_week_end)
     df_last_week = fetch_gsc_data(service, site_url, last_week_start, last_week_end)
 
-    print("last_week rows:", len(df_last_week))
-    print("this_week rows:", len(df_this_week))
-    print(df_this_week.head())
+    if df_this_week.empty:
+        print("⚠️ 今週のGSCデータが空です。")
+        return "<p>データが不足しているため改善提案を表示できませんでした。</p>"
+
+    ga_conversion_data = []
+    for url in df_this_week["URL"].unique():
+        ga_df = fetch_ga_conversion_for_url(
+            start_date=this_week_start.isoformat(),
+            end_date=this_week_end.isoformat(),
+            full_url=url
+        )
+        if not ga_df.empty:
+            ga_conversion_data.append(ga_df.iloc[0])
+
+    if ga_conversion_data:
+        ga_df_combined = pd.DataFrame(ga_conversion_data)
+    else:
+        ga_df_combined = pd.DataFrame(columns=["URL", "コンバージョン数"])
+
+    merged_df = pd.merge(df_this_week, ga_df_combined, on="URL", how="left")
+    merged_df["コンバージョン数"] = merged_df["コンバージョン数"].fillna(0).astype(int)
 
     spreadsheet = get_spreadsheet(SPREADSHEET_ID)
-    sheet_suggestions = get_or_create_worksheet(spreadsheet, "改善案")
-    update_sheet(sheet_suggestions, ['URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'], df_this_week.values.tolist())
+    sheet_result = get_or_create_worksheet(spreadsheet, "SEOデータ")
+    update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
 
-    gsc_data_for_export = []
-    for _, row in df_this_week.iterrows():
-        gsc_data_for_export.append({
-            "url": row["URL"],
-            "query": "（仮）",
-            "position": row["平均順位"],
-            "clicks": row["クリック数"],
-            "impressions": row["表示回数"]
-        })
+    print("✅ スプレッドシートに書き込みました。")
 
-    merged_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
-    merged_df['順位変化'] = merged_df['平均順位_今週'] - merged_df['平均順位_先週']
-    dropped_df = merged_df[merged_df['順位変化'] > 0].sort_values(by='順位変化', ascending=False)
-
-    sheet_dropped = get_or_create_worksheet(spreadsheet, "順位が下がったページ")
-    update_sheet(sheet_dropped, ['URL', '平均順位（先週）', '平均順位（今週）', '順位変化'],
-                 dropped_df[['URL', '平均順位_先週', '平均順位_今週', '順位変化']].values.tolist())
+    merged_compare = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
+    merged_compare['順位変化'] = merged_compare['平均順位_今週'] - merged_compare['平均順位_先週']
+    dropped_df = merged_compare[merged_compare['順位変化'] > 0].sort_values(by='順位変化', ascending=False)
 
     if dropped_df.empty:
         print("❌ 順位が下がったページが見つかりませんでした。")
+        return "<p>順位が下がったページが見つかりませんでした。</p>"
 
-    all_df = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
-    if all_df.empty:
-        print("⚠️ データがまったく存在しないため、改善対象ページを選べません。")
-        return "<p>データが不足しているため改善提案を表示できませんでした。</p>"
-
-    worst_page = all_df.sort_values(by='平均順位_今週', ascending=False).iloc[0]
+    worst_page = dropped_df.iloc[0]
     target_url = worst_page['URL']
     print(f"🎯 対象ページ: {target_url}")
 
@@ -72,7 +79,7 @@ def process_seo_improvement(site_url):
         print(f"🔍 抽出されたキーワード: {keyword}")
     except Exception as e:
         print(f"⚠️ メタ情報の取得に失敗: {e}")
-        return
+        keyword = "SEO"
 
     try:
         top_urls = get_top_competitor_urls(keyword)
@@ -91,10 +98,10 @@ def process_seo_improvement(site_url):
 
     result_html = f"""
     <!DOCTYPE html>
-    <html lang="ja">
+    <html lang=\"ja\">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset=\"UTF-8\">
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
         <title>SEO 改善提案</title>
     </head>
     <body>
@@ -102,7 +109,7 @@ def process_seo_improvement(site_url):
         <p><strong>対象URL：</strong> {target_url}</p>
         <h3>💡 ChatGPTの改善提案</h3>
         <p>{response}</p>
-        <a href="/">戻る</a>
+        <a href=\"/\">戻る</a>
     </body>
     </html>
     """
@@ -112,10 +119,7 @@ def process_seo_improvement(site_url):
 
     print("✅ HTMLファイルに出力しました。")
 
-    write_gsc_data_to_sheet(spreadsheet, gsc_data_for_export)
-    write_ga_data_to_sheet(spreadsheet, fetch_ga_data(this_week_start.isoformat(), this_week_end.isoformat()))
-
     return result_html
 
 if __name__ == "__main__":
-    process_seo_improvement("https://mrseoai.com")
+    process_seo_improvement("sc-domain:mrseoai.com")
