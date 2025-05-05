@@ -21,28 +21,28 @@ def process_seo_improvement(site_url):
     print(f"\U0001F680 SEO改善を開始: {site_url}")
 
     today = datetime.today().date()
-    yesterday = today - timedelta(days=1)
+    yesterday = today - timedelta(days=2)
 
     this_week_start = yesterday - timedelta(days=6)
     this_week_end = yesterday
 
-    last_week_start = yesterday - timedelta(days=13)
-    last_week_end = yesterday - timedelta(days=7)
-
     service = get_search_console_service()
     df_this_week = fetch_gsc_data(service, site_url, this_week_start, this_week_end)
-    df_last_week = fetch_gsc_data(service, site_url, last_week_start, last_week_end)
+
+    print("✅ 今週のdf:")
+    print(df_this_week)
 
     if df_this_week.empty:
-        print("⚠️ 今週のGSCデータが空です。")
-        return "<p>データが不足しているため改善提案を表示できませんでした。</p>"
+        print("❌ 今週のGSCデータが空なので改善対象が選べません。")
+        return "<p>今週のGSCデータが空です。</p>"
 
     ga_conversion_data = []
     for url in df_this_week["URL"].unique():
+        page_path = urlparse(url).path or "/"
         ga_df = fetch_ga_conversion_for_url(
             start_date=this_week_start.isoformat(),
             end_date=this_week_end.isoformat(),
-            full_url=url
+            full_url=page_path
         )
         if not ga_df.empty:
             ga_conversion_data.append(ga_df.iloc[0])
@@ -55,23 +55,19 @@ def process_seo_improvement(site_url):
     merged_df = pd.merge(df_this_week, ga_df_combined, on="URL", how="left")
     merged_df["コンバージョン数"] = merged_df["コンバージョン数"].fillna(0).astype(int)
 
+    print("🔎 merged_df の中身:")
+    print(merged_df)
+
     spreadsheet = get_spreadsheet(SPREADSHEET_ID)
     sheet_result = get_or_create_worksheet(spreadsheet, "SEOデータ")
-    update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
 
+    print("📤 スプレッドシートへの書き込みを開始します")
+    update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
     print("✅ スプレッドシートに書き込みました。")
 
-    merged_compare = pd.merge(df_last_week, df_this_week, on='URL', suffixes=('_先週', '_今週'))
-    merged_compare['順位変化'] = merged_compare['平均順位_今週'] - merged_compare['平均順位_先週']
-    dropped_df = merged_compare[merged_compare['順位変化'] > 0].sort_values(by='順位変化', ascending=False)
-
-    if dropped_df.empty:
-        print("❌ 順位が下がったページが見つかりませんでした。")
-        return "<p>順位が下がったページが見つかりませんでした。</p>"
-
-    worst_page = dropped_df.iloc[0]
+    worst_page = merged_df.sort_values(by='平均順位', ascending=False).iloc[0]
     target_url = worst_page['URL']
-    print(f"🎯 対象ページ: {target_url}")
+    print(f"🎯 今週の中で最下位のページを改善対象に選定: {target_url}")
 
     try:
         meta_info = get_meta_info_from_url(target_url)
@@ -96,28 +92,63 @@ def process_seo_improvement(site_url):
         print(f"⚠️ ChatGPTへのリクエスト失敗: {e}")
         response = "ChatGPT からの改善提案を取得できませんでした。"
 
+    html_rows = ""
+    for _, row in merged_df.iterrows():
+        html_rows += f"<tr><td>{row['URL']}</td><td>{row['クリック数']}</td><td>{row['表示回数']}</td><td>{row['CTR（%）']}</td><td>{row['平均順位']}</td><td>{row['コンバージョン数']}</td></tr>"
+
     result_html = f"""
-    <!DOCTYPE html>
-    <html lang=\"ja\">
-    <head>
-        <meta charset=\"UTF-8\">
-        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-        <title>SEO 改善提案</title>
-    </head>
-    <body>
-        <h2>SEO 改善提案</h2>
-        <p><strong>対象URL：</strong> {target_url}</p>
-        <h3>💡 ChatGPTの改善提案</h3>
-        <p>{response}</p>
-        <a href=\"/\">戻る</a>
-    </body>
-    </html>
-    """
+        <!DOCTYPE html>
+        <html lang=\"ja\">
+        <head>
+            <meta charset=\"UTF-8\">
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+            <title>SEO データ可視化</title>
+            <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>
+            <style>
+                table {{ border-collapse: collapse; width: 100%; }}
+                th, td {{ border: 1px solid #ccc; padding: 8px; text-align: center; }}
+            </style>
+        </head>
+        <body>
+            <h2>SEO データ可視化</h2>
+            <table>
+                <thead>
+                    <tr><th>URL</th><th>クリック数</th><th>表示回数</th><th>CTR（%）</th><th>平均順位</th><th>コンバージョン数</th></tr>
+                </thead>
+                <tbody>
+                    {html_rows}
+                </tbody>
+            </table>
+            <canvas id=\"conversionChart\" width=\"400\" height=\"200\"></canvas>
+            <script>
+                const ctx = document.getElementById('conversionChart').getContext('2d');
+                const chart = new Chart(ctx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: {merged_df['URL'].tolist()},
+                        datasets: [{{
+                            label: 'コンバージョン数',
+                            data: {merged_df['コンバージョン数'].tolist()},
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        plugins: {{
+                            legend: {{ position: 'top' }},
+                            title: {{ display: true, text: 'ページ別コンバージョン数' }}
+                        }}
+                    }}
+                }});
+            </script>
+        </body>
+        </html>
+        """
 
     with open("templates/result.html", "w", encoding="utf-8") as f:
         f.write(result_html)
 
-    print("✅ HTMLファイルに出力しました。")
+    print("✅ HTMLファイルに出力しました（グラフ付き）。")
 
     return result_html
 

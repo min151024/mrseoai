@@ -1,28 +1,48 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO 改善提案</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="statics/style.css">
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-91XHW9PG44"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-91XHW9PG44');  
-    </script>
-</head>
-<body>
-    <h1>SEO 改善提案</h1>
-    <p><strong>対象URL：</strong> {{ site_url }}</p>
 
-    <h2>📊 スプレッドシートのデータ</h2>
-    <div>
-        {{ table_html | safe }}
-    </div>
-
-    <a href="/">戻る</a>
-</body>
-</html>
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>SEO データ可視化</title>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <style>
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+            </style>
+        </head>
+        <body>
+            <h2>SEO データ可視化</h2>
+            <table>
+                <thead>
+                    <tr><th>URL</th><th>クリック数</th><th>表示回数</th><th>CTR（%）</th><th>平均順位</th><th>コンバージョン数</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>https://mrseoai.com/</td><td>0</td><td>3</td><td>0</td><td>94</td><td>0</td></tr>
+                </tbody>
+            </table>
+            <canvas id="conversionChart" width="400" height="200"></canvas>
+            <script>
+                const ctx = document.getElementById('conversionChart').getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['https://mrseoai.com/'],
+                        datasets: [{
+                            label: 'コンバージョン数',
+                            data: [0],
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'ページ別コンバージョン数' }
+                        }
+                    }
+                });
+            </script>
+        </body>
+        </html>
+        
