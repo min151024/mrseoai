@@ -44,6 +44,21 @@
                     }
                 });
             </script>
+            <h3>競合ページ情報</h3>
+            <table>
+                <thead>
+                    <tr><th>URL</th><th>タイトル</th><th>メタディスクリプション</th></tr>
+                </thead>
+                <tbody>
+                    {% for c in competitors %}
+                        <tr>
+                            <td>{{ c.URL }}</td>
+                            <td>{{ c.タイトル }}</td>
+                            <td>{{ c.メタディスクリプション }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </body>
         </html>
         

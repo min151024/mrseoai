@@ -28,3 +28,9 @@ def update_sheet(worksheet, headers, data):
     worksheet.append_row(headers)
     for row in data:
         worksheet.append_row(row)
+
+def write_competitor_data_to_sheet(spreadsheet, competitor_data):
+    worksheet = get_or_create_worksheet(spreadsheet, "競合分析")
+    headers = ["URL", "タイトル", "メタディスクリプション"]
+    values = [[c["URL"], c["タイトル"], c["メタディスクリプション"]] for c in competitor_data]
+    update_sheet(worksheet, headers, values)

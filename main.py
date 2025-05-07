@@ -8,7 +8,8 @@ from gsc_utils import get_search_console_service, fetch_gsc_data
 from sheet_utils import (
     get_spreadsheet,
     get_or_create_worksheet,
-    update_sheet
+    update_sheet,
+    write_competitor_data_to_sheet
 )
 
 SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4'
@@ -35,6 +36,16 @@ def process_seo_improvement(site_url):
     if df_this_week.empty:
         print("❌ 今週のGSCデータが空なので改善対象が選べません。")
         return "<p>今週のGSCデータが空です。</p>"
+
+    competitor_data = []
+    for url in top_urls:
+        info = get_meta_info_from_url(url)
+        competitor_data.append({
+            "URL": url,
+            "タイトル": info.get("title", ""),
+            "メタディスクリプション": info.get("description", "")
+        })
+
 
     ga_conversion_data = []
     for url in df_this_week["URL"].unique():
@@ -63,6 +74,7 @@ def process_seo_improvement(site_url):
 
     print("📤 スプレッドシートへの書き込みを開始します")
     update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
+    write_competitor_data_to_sheet(spreadsheet, competitor_data)
     print("✅ スプレッドシートに書き込みました。")
 
     worst_page = merged_df.sort_values(by='平均順位', ascending=False).iloc[0]
@@ -94,7 +106,7 @@ def process_seo_improvement(site_url):
 
     html_rows = ""
     for _, row in merged_df.iterrows():
-        html_rows += f"<tr><td>{row['URL']}</td><td>{row['クリック数']}</td><td>{row['表示回数']}</td><td>{row['CTR（%）']}</td><td>{row['平均順位']}</td><td>{row['コンバージョン数']}</td></tr>"
+       html_rows += f"<tr><td>{row['URL']}</td><td>{row['クリック数']}</td><td>{row['表示回数']}</td><td>{row['CTR（%）']}</td><td>{row['平均順位']}</td><td>{row['コンバージョン数']}</td></tr>"
 
     result_html = f"""
         <!DOCTYPE html>
@@ -150,7 +162,13 @@ def process_seo_improvement(site_url):
 
     print("✅ HTMLファイルに出力しました（グラフ付き）。")
 
-    return result_html
+    return {
+    "table_html": html_rows,
+    "chart_labels": merged_df["URL"].tolist(),
+    "chart_data": merged_df["コンバージョン数"].tolist(),
+    "competitors": competitor_data
+}
+
 
 if __name__ == "__main__":
     process_seo_improvement("sc-domain:mrseoai.com")
