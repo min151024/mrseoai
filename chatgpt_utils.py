@@ -33,7 +33,6 @@ def build_prompt(target_url, competitors_info, ga_data):
 {ga_text}
 
 上記を参考にして、対象ページのタイトルとメタディスクリプションの改善案を提案してください。
-理由や解説は不要です。改善案だけを出力してください。
 """
     return prompt
 

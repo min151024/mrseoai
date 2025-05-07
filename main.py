@@ -94,10 +94,11 @@ def process_seo_improvement(site_url):
         competitors_info = [get_meta_info_from_url(url) for url in top_urls if url]
     except Exception as e:
         print(f"⚠️ 競合ページの取得に失敗: {e}")
+        top_urls = []
         competitors_info = []
 
     try:
-        prompt = build_prompt(target_url, competitors_info)
+        prompt = build_prompt(target_url, competitors_info, merged_df)
         response = get_chatgpt_response(prompt)
         print("💡 ChatGPT改善案:", response)
     except Exception as e:
@@ -153,6 +154,10 @@ def process_seo_improvement(site_url):
                     }}
                 }});
             </script>
+            <h3>ChatGPTによる改善案</h3>
+            <div style="border: 1px solid #ccc; padding: 10px; margin-top: 10px;">
+                <pre>{response}</pre>
+            </div>
         </body>
         </html>
         """

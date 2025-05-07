@@ -1,3 +1,4 @@
+from urllib import response
 from urllib.parse import urlparse
 from flask import Flask, request, render_template, redirect, url_for
 from main import process_seo_improvement
@@ -24,7 +25,8 @@ def index():
             table_html=result["table_html"],
             chart_labels=result["chart_labels"],
             chart_data=result["chart_data"],
-            competitors=result["competitors"]
+            competitors=result["competitors"],
+            chatgpt_response=response
         )
 
     return render_template("index.html")
