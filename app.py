@@ -16,11 +16,11 @@ def index():
     result = None  # 初期状態では結果なし
     if request.method == "POST":
         input_url = request.form["url"]
-        site_url = to_domain_property(input_url)  
+        site_url = to_domain_property(input_url) 
         result = process_seo_improvement(site_url)  # ドメインプロパティ形式で渡す
-    return render_template("index.html", result=result)  # 結果を渡す
+    return render_template("index.html", result_data=result)
 @app.route('/result')
-def result():
+def show_result():
     return render_template('result.html', site_url="（前回のURL）", table_html="（前回の表データ）")
 
 if __name__ == "__main__":
