@@ -169,6 +169,5 @@ def process_seo_improvement(site_url):
     "competitors": competitor_data
 }
 
-
 if __name__ == "__main__":
     process_seo_improvement("sc-domain:mrseoai.com")
