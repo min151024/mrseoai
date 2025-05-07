@@ -1,15 +1,16 @@
 from urllib.parse import urlparse
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect, url_for
 from main import process_seo_improvement
 
 app = Flask(__name__)
 
+# フォームで入力されたURLを GSCのドメインプロパティ形式に変換
 def to_domain_property(url):
-    """http(s)://www.などを sc-domain:ドメイン名 に変換"""
     parsed = urlparse(url)
     domain = parsed.hostname.replace("www.", "")
     return f"sc-domain:{domain}"
 
+# 分析フォームのトップページ
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -27,5 +28,7 @@ def index():
 
     return render_template("index.html")
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000, debug=True)
+# 過去の改善結果ページ（仮の実装）
+@app.route("/result")
+def show_result():
+    return render_template("result.html", table_html="", chart_labels=[], chart_data=[], competitors=[])
