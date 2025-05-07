@@ -37,16 +37,6 @@ def process_seo_improvement(site_url):
         print("❌ 今週のGSCデータが空なので改善対象が選べません。")
         return "<p>今週のGSCデータが空です。</p>"
 
-    competitor_data = []
-    for url in top_urls:
-        info = get_meta_info_from_url(url)
-        competitor_data.append({
-            "URL": url,
-            "タイトル": info.get("title", ""),
-            "メタディスクリプション": info.get("description", "")
-        })
-
-
     ga_conversion_data = []
     for url in df_this_week["URL"].unique():
         page_path = urlparse(url).path or "/"
@@ -88,6 +78,9 @@ def process_seo_improvement(site_url):
     except Exception as e:
         print(f"⚠️ メタ情報の取得に失敗: {e}")
         keyword = "SEO"
+        
+    top_urls = []
+    competitors_info = []
 
     try:
         top_urls = get_top_competitor_urls(keyword)
@@ -96,6 +89,16 @@ def process_seo_improvement(site_url):
         print(f"⚠️ 競合ページの取得に失敗: {e}")
         top_urls = []
         competitors_info = []
+
+    competitor_data = []
+    for url in top_urls:
+        info = get_meta_info_from_url(url)
+        competitor_data.append({
+            "URL": url,
+            "タイトル": info.get("title", ""),
+            "メタディスクリプション": info.get("description", "")
+        })
+
 
     try:
         prompt = build_prompt(target_url, competitors_info, merged_df)
