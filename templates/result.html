@@ -6,7 +6,6 @@
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>SEO データ可視化</title>
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-            <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
             <style>
                 table { border-collapse: collapse; width: 100%; }
                 th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
@@ -19,7 +18,7 @@
                     <tr><th>URL</th><th>クリック数</th><th>表示回数</th><th>CTR（%）</th><th>平均順位</th><th>コンバージョン数</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>https://mrseoai.com/</td><td>0</td><td>3</td><td>0</td><td>94</td><td>0</td></tr>
+                    <tr><td>https://mrseoai.com/</td><td>1</td><td>7</td><td>14.29</td><td>2.43</td><td>0</td></tr><tr><td>https://mrseoai.com/</td><td>0</td><td>1</td><td>0.0</td><td>96.0</td><td>0</td></tr>
                 </tbody>
             </table>
             <canvas id="conversionChart" width="400" height="200"></canvas>
@@ -28,10 +27,10 @@
                 const chart = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: ['https://mrseoai.com/'],
+                        labels: ['https://mrseoai.com/', 'https://mrseoai.com/'],
                         datasets: [{
                             label: 'コンバージョン数',
-                            data: [0],
+                            data: [0, 0],
                             backgroundColor: 'rgba(75, 192, 192, 0.6)'
                         }]
                     },
@@ -44,25 +43,10 @@
                     }
                 });
             </script>
-            <h3>競合ページ情報</h3>
-            <table>
-                <thead>
-                    <tr><th>URL</th><th>タイトル</th><th>メタディスクリプション</th></tr>
-                </thead>
-                <tbody>
-                    {% for c in competitors %}
-                        <tr>
-                            <td>{{ c.URL }}</td>
-                            <td>{{ c.タイトル }}</td>
-                            <td>{{ c.メタディスクリプション }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
             <h3>ChatGPTによる改善案</h3>
             <div class="chatgpt-response">
                 <pre>{{ chatgpt_response }}</pre>
-            </div>
+            </div>            
         </body>
         </html>
         

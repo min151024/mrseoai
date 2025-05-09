@@ -1,9 +1,10 @@
-import openai
 import os
+from openai import OpenAI
+import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ChatGPT用プロンプト生成
 def build_prompt(target_url, competitors_info, ga_data):
@@ -36,14 +37,11 @@ def build_prompt(target_url, competitors_info, ga_data):
 """
     return prompt
 
-
 # ChatGPTに投げる
 def get_chatgpt_response(prompt):
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",  # or "gpt-3.5-turbo"
+        response = client.chat.completions.create(
+            model="gpt-4",  # または "gpt-3.5-turbo"
             messages=[
                 {"role": "system", "content": "あなたはSEOの専門家です。"},
                 {"role": "user", "content": prompt}
@@ -51,7 +49,7 @@ def get_chatgpt_response(prompt):
             max_tokens=1000,
             temperature=0.7
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         print("❌ ChatGPT APIエラー:", e)
         return None

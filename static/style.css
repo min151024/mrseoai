@@ -124,3 +124,10 @@ nav a {
 nav a:hover {
     text-decoration: underline;
 }
+
+.chatgpt-response {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-top: 10px;
+  }
+  

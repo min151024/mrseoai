@@ -38,6 +38,9 @@ def process_seo_improvement(site_url):
         return "<p>今週のGSCデータが空です。</p>"
 
     ga_conversion_data = []
+    top_urls = []
+    competitors_info = []
+
     for url in df_this_week["URL"].unique():
         page_path = urlparse(url).path or "/"
         ga_df = fetch_ga_conversion_for_url(
@@ -59,14 +62,6 @@ def process_seo_improvement(site_url):
     print("🔎 merged_df の中身:")
     print(merged_df)
 
-    spreadsheet = get_spreadsheet(SPREADSHEET_ID)
-    sheet_result = get_or_create_worksheet(spreadsheet, "SEOデータ")
-
-    print("📤 スプレッドシートへの書き込みを開始します")
-    update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
-    write_competitor_data_to_sheet(spreadsheet, competitor_data)
-    print("✅ スプレッドシートに書き込みました。")
-
     worst_page = merged_df.sort_values(by='平均順位', ascending=False).iloc[0]
     target_url = worst_page['URL']
     print(f"🎯 今週の中で最下位のページを改善対象に選定: {target_url}")
@@ -78,9 +73,6 @@ def process_seo_improvement(site_url):
     except Exception as e:
         print(f"⚠️ メタ情報の取得に失敗: {e}")
         keyword = "SEO"
-        
-    top_urls = []
-    competitors_info = []
 
     try:
         top_urls = get_top_competitor_urls(keyword)
@@ -107,6 +99,16 @@ def process_seo_improvement(site_url):
     except Exception as e:
         print(f"⚠️ ChatGPTへのリクエスト失敗: {e}")
         response = "ChatGPT からの改善提案を取得できませんでした。"
+
+
+    spreadsheet = get_spreadsheet(SPREADSHEET_ID)
+    sheet_result = get_or_create_worksheet(spreadsheet, "SEOデータ")
+
+    print("📤 スプレッドシートへの書き込みを開始します")
+    update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
+    write_competitor_data_to_sheet(spreadsheet, competitor_data)
+    print("✅ スプレッドシートに書き込みました。")
+        
 
     html_rows = ""
     for _, row in merged_df.iterrows():
