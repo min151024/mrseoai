@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン | Mr.SEO AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="static/style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+</head>
+<body>
+  <nav>
+    <h1>Mr.SEO AI</h1>
+    <a href="{{ url_for('index') }}">ホームに戻る</a>
+  </nav>
+
+  <h2>ログイン</h2>
+  <form id="login-form">
+    <label for="login-email">メールアドレス：</label>
+    <input type="email" id="login-email" required placeholder="your@example.com">
+
+    <label for="login-password">パスワード：</label>
+    <input type="password" id="login-password" required placeholder="パスワード">
+
+    <button type="submit">ログイン</button>
+  </form>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "{{ FIREBASE_API_KEY }}",
+      authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
+      projectId: "{{ FIREBASE_PROJECT_ID }}",
+      appId: "{{ FIREBASE_APP_ID }}"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    document.getElementById("login-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          alert("ログイン成功！ホームへ移動します。");
+          window.location.href = "/";
+        })
+        .catch((error) => {
+          alert("ログインエラー: " + error.message);
+        });
+    });
+  </script>
+</body>
+</html>

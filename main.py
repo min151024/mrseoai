@@ -116,12 +116,12 @@ def process_seo_improvement(site_url):
 
     result_html = f"""
         <!DOCTYPE html>
-        <html lang=\"ja\">
+        <html lang="ja">
         <head>
-            <meta charset=\"UTF-8\">
-            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>SEO データ可視化</title>
-            <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <style>
                 table {{ border-collapse: collapse; width: 100%; }}
                 th, td {{ border: 1px solid #ccc; padding: 8px; text-align: center; }}
@@ -137,35 +137,62 @@ def process_seo_improvement(site_url):
                     {html_rows}
                 </tbody>
             </table>
-            <canvas id=\"conversionChart\" width=\"400\" height=\"200\"></canvas>
+
+            <canvas id="metricsChart" width="800" height="300"></canvas>
             <script>
-                const ctx = document.getElementById('conversionChart').getContext('2d');
+                const ctx = document.getElementById('metricsChart').getContext('2d');
                 const chart = new Chart(ctx, {{
                     type: 'bar',
                     data: {{
                         labels: {merged_df['URL'].tolist()},
-                        datasets: [{{
-                            label: 'コンバージョン数',
-                            data: {merged_df['コンバージョン数'].tolist()},
-                            backgroundColor: 'rgba(75, 192, 192, 0.6)'
-                        }}]
+                        datasets: [
+                            {{
+                                label: 'クリック数',
+                                data: {merged_df['クリック数'].tolist()},
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                            }},
+                            {{
+                                label: '表示回数',
+                                data: {merged_df['表示回数'].tolist()},
+                                backgroundColor: 'rgba(255, 206, 86, 0.6)'
+                            }},
+                            {{
+                                label: 'CTR（%）',
+                                data: {merged_df['CTR（%）'].tolist()},
+                                backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                            }},
+                            {{
+                                label: '平均順位',
+                                data: {merged_df['平均順位'].tolist()},
+                                backgroundColor: 'rgba(153, 102, 255, 0.6)'
+                            }},
+                            {{
+                                label: 'コンバージョン数',
+                                data: {merged_df['コンバージョン数'].tolist()},
+                                backgroundColor: 'rgba(255, 99, 132, 0.6)'
+                            }}
+                        ]
                     }},
                     options: {{
                         responsive: true,
                         plugins: {{
                             legend: {{ position: 'top' }},
-                            title: {{ display: true, text: 'ページ別コンバージョン数' }}
+                            title: {{ display: true, text: '各ページのSEO指標比較' }}
+                        }},
+                        scales: {{
+                            y: {{ beginAtZero: true }}
                         }}
                     }}
                 }});
             </script>
+
             <h3>ChatGPTによる改善案</h3>
-            <div style="border: 1px solid #ccc; padding: 10px; margin-top: 10px;">
+            <div class="chatgpt-response">
                 <pre>{response}</pre>
             </div>
         </body>
         </html>
-        """
+    """
 
     with open("templates/result.html", "w", encoding="utf-8") as f:
         f.write(result_html)

@@ -13,6 +13,15 @@ def to_domain_property(url):
     return f"sc-domain:{domain}"
 
 # 分析フォームのトップページ
+@app.route("/register")
+def register():
+    return render_template("register.html",
+        FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
+        FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
+        FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
+        FIREBASE_APP_ID=os.getenv("FIREBASE_APP_ID")
+    )
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
