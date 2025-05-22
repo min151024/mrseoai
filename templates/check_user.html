@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー選別</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+</head>
+<body>
+    <h1>メールアドレスを入力</h1>
+    <form id="check-form">
+        <input type="email" id="email" placeholder="メールアドレス" required>
+        <button type="submit">次へ</button>
+    </form>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "{{ FIREBASE_API_KEY }}",
+            authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
+            projectId: "{{ FIREBASE_PROJECT_ID }}",
+            appId: "{{ FIREBASE_APP_ID }}"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        document.getElementById('check-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+
+            // Firebaseは登録ユーザー一覧取得できないので、ログインを試みて分岐
+            auth.signInWithEmailAndPassword(email, 'dummyPassword')
+                .then(() => {
+                    // 正常にログイン→ユーザー存在
+                    window.location.href = "/login";
+                })
+                .catch((error) => {
+                    if (error.code === 'auth/user-not-found') {
+                        // 未登録 → registerページへ
+                        sessionStorage.setItem('email', email); // 再利用用
+                        window.location.href = "/register";
+                    } else {
+                        // 他のエラー（パスワード間違いなど）→ログインページへ
+                        window.location.href = "/login";
+                    }
+                });
+        });
+    </script>
+</body>
+</html>

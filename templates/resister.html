@@ -1,55 +1,67 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>新規登録 | Mr.SEO AI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="stylesheet" href="static/style.css">
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー登録 - Mr.SEO AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
 </head>
 <body>
-  <nav>
-    <h1>Mr.SEO AI</h1>
-    <a href="{{ url_for('index') }}">ホームに戻る</a>
-  </nav>
+    <nav>
+        <h1>Mr.SEO AI</h1>
+        <a href="{{ url_for('login') }}">ログイン</a>
+        <a href="/">トップ</a>
+    </nav>
 
-  <h2>新規登録</h2>
-  <form id="register-form">
-    <label for="register-email">メールアドレス：</label>
-    <input type="email" id="register-email" required placeholder="your@example.com">
+    <h1>ユーザー登録</h1>
+    <p class="tagline">メールアドレスとパスワードを入力してアカウントを作成してください</p>
 
-    <label for="register-password">パスワード：</label>
-    <input type="password" id="register-password" required placeholder="6文字以上">
+    <form id="register-form">
+        <label for="email">メールアドレス</label>
+        <input type="email" id="email" placeholder="you@example.com" required>
 
-    <button type="submit">登録</button>
-  </form>
+        <label for="password">パスワード</label>
+        <input type="password" id="password" placeholder="パスワード" required>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "{{ FIREBASE_API_KEY }}",
-      authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
-      projectId: "{{ FIREBASE_PROJECT_ID }}",
-      appId: "{{ FIREBASE_APP_ID }}"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+        <div class="button-group">
+            <button type="submit">登録する</button>
+            <a href="{{ url_for('login') }}" class="secondary-button">ログインページへ</a>
+        </div>
+    </form>
 
-    document.getElementById("register-form").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const email = document.getElementById("register-email").value;
-      const password = document.getElementById("register-password").value;
+    <script>
+        const firebaseConfig = {
+            apiKey: "{{ FIREBASE_API_KEY }}",
+            authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
+            projectId: "{{ FIREBASE_PROJECT_ID }}",
+            appId: "{{ FIREBASE_APP_ID }}"
+        };
 
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => {
-          alert("登録完了！ホームに戻ります。");
-          window.location.href = "/";
-        })
-        .catch((error) => {
-          alert("エラー: " + error.message);
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const email = sessionStorage.getItem('email');
+            if (email) {
+                document.getElementById('email').value = email;
+            }
         });
-    });
-  </script>
+
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    window.location.href = "/login";
+                })
+                .catch(error => {
+                    alert("登録エラー: " + error.message);
+                });
+        });
+    </script>
 </body>
 </html>

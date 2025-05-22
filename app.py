@@ -4,7 +4,7 @@ from main import process_seo_improvement
 import os
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "defaultsecretkey")  # セッション用に必要
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "defaultsecretkey")  # セッション用
 
 def to_domain_property(url):
     parsed = urlparse(url)
@@ -14,8 +14,22 @@ def to_domain_property(url):
 def is_authenticated():
     return session.get("user_authenticated", False)
 
-# トップページ（ログイン済みならスキップ）
-@app.route("/", methods=["GET", "POST"])
+# 🔰 ① 最初に表示される画面：ユーザーの登録有無をチェック
+@app.route("/", methods=["GET"])
+def root():
+    return redirect(url_for("entry"))
+
+@app.route("/entry")
+def entry():
+    return render_template("check_user.html",
+        FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
+        FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
+        FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
+        FIREBASE_APP_ID=os.getenv("FIREBASE_APP_ID")
+    )
+
+
+@app.route("/index", methods=["GET", "POST"])
 def index():
     if not is_authenticated():
         return redirect(url_for("login"))
@@ -37,11 +51,10 @@ def index():
 
     return render_template("index.html")
 
-# ユーザー登録ページ（初回アクセス時に使用）
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        # Firebase登録完了処理などをここに入れる
         session["user_authenticated"] = True
         return redirect(url_for("index"))
 
