@@ -99,31 +99,6 @@ button[type="submit"]:hover {
     text-decoration: underline;
 }
 
-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #2c3e50;
-    padding: 1rem 2rem;
-    color: white;
-}
-
-nav h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: white;
-}
-
-nav a {
-    margin-left: 1rem;
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-nav a:hover {
-    text-decoration: underline;
-}
 
 .chatgpt-response {
     border: 1px solid #ccc;
@@ -162,5 +137,43 @@ nav a:hover {
 #register-form button:hover {
     background-color: #2980b9;
 }
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2c3e50;
+    padding: 1rem 2rem;
+    margin-bottom: 2rem;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+nav h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: white;
+    font-weight: bold;
+}
+
+nav div {
+    display: flex;
+    gap: 1rem;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+nav a:hover {
+    background-color: #34495e;
+}
+
 
   

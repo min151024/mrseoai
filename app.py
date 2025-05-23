@@ -14,21 +14,6 @@ def to_domain_property(url):
 def is_authenticated():
     return session.get("user_authenticated", False)
 
-# 🔰 ① 最初に表示される画面：ユーザーの登録有無をチェック
-@app.route("/", methods=["GET"])
-def root():
-    return redirect(url_for("entry"))
-
-@app.route("/entry")
-def entry():
-    return render_template("check_user.html",
-        FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
-        FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
-        FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
-        FIREBASE_APP_ID=os.getenv("FIREBASE_APP_ID")
-    )
-
-
 @app.route("/index", methods=["GET", "POST"])
 def index():
     if not is_authenticated():
