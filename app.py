@@ -14,7 +14,8 @@ def to_domain_property(url):
 def is_authenticated():
     return session.get("user_authenticated", False)
 
-@app.route("/index", methods=["GET", "POST"])
+
+@app.route("/", methods=["GET", "POST"])
 def index():
     if not is_authenticated():
         return redirect(url_for("login"))
@@ -35,6 +36,7 @@ def index():
         )
 
     return render_template("index.html")
+
 
 
 @app.route("/register", methods=["GET", "POST"])
