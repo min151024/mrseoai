@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
-from flask import Flask, request, render_template, redirect, url_for, session
+from flask import Flask, redirect, session, url_for, request, render_template
+from oauth import create_flow, get_credentials_from_session, store_credentials_in_session
 from main import process_seo_improvement
 import os
 
@@ -14,10 +15,9 @@ def to_domain_property(url):
 def is_authenticated():
     return session.get("user_authenticated", False)
 
-
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if not is_authenticated():
+    if not is_authenticated() or "credentials" not in session:
         return redirect(url_for("login"))
 
     if request.method == "POST":
@@ -43,7 +43,14 @@ def index():
 def register():
     if request.method == "POST":
         session["user_authenticated"] = True
-        return redirect(url_for("index"))
+        flow = create_flow()
+        auth_url, _ = flow.authorization_url(
+            prompt="consent",
+            access_type="offline",
+            include_granted_scopes="true"
+        )
+        return redirect(auth_url)
+
 
     return render_template("register.html",
         FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
@@ -51,6 +58,15 @@ def register():
         FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
         FIREBASE_APP_ID=os.getenv("FIREBASE_APP_ID")
     )
+
+@app.route("/oauth2callback")
+def oauth2callback():
+    flow = create_flow()
+    flow.fetch_token(authorization_response=request.url)
+    credentials = flow.credentials
+    store_credentials_in_session(credentials)
+    return redirect(url_for("index"))
+
 
 
 @app.route("/login", methods=["GET", "POST"])

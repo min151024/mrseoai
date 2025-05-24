@@ -25,6 +25,12 @@
     </nav>
     <h1>検索広告自動改善AI</h1>
     <p class="tagline">URLを入力するとデータの出力、競合の分析、改善案の提案を自動で行います</p>
+
+    {% if not session.credentials %}
+    <p class="error-message">※ Google連携が完了していません。</p>
+    <a href="{{ url_for('login') }}" class="button">もう一度ログイン</a>
+    {% endif %}
+
     
     <form method="post" action="/">
         <label for="url">分析するURLを入力：</label>
