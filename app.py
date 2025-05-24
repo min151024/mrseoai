@@ -15,10 +15,14 @@ def to_domain_property(url):
 def is_authenticated():
     return session.get("user_authenticated", False)
 
+def is_oauth_authenticated():
+    return "credentials" in session
+
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if not is_authenticated() or "credentials" not in session:
-        return redirect(url_for("login"))
+    # 未登録 or OAuth未連携なら登録画面へ
+    if not is_authenticated() or not is_oauth_authenticated():
+        return redirect(url_for("register"))
 
     if request.method == "POST":
         input_url = request.form["url"]
@@ -37,12 +41,12 @@ def index():
 
     return render_template("index.html")
 
-
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+        # Firebase 登録完了
         session["user_authenticated"] = True
+        # Google OAuth 開始
         flow = create_flow()
         auth_url, _ = flow.authorization_url(
             prompt="consent",
@@ -51,8 +55,30 @@ def register():
         )
         return redirect(auth_url)
 
-
+    # GET時は登録フォーム＆ログインリンクを表示
     return render_template("register.html",
+        FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
+        FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
+        FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
+        FIREBASE_APP_ID=os.getenv("FIREBASE_APP_ID")
+    )
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        # Firebase ログイン成功
+        session["user_authenticated"] = True
+        # Google OAuth 開始
+        flow = create_flow()
+        auth_url, _ = flow.authorization_url(
+            prompt="consent",
+            access_type="offline",
+            include_granted_scopes="true"
+        )
+        return redirect(auth_url)
+
+    # GET時はログインフォーム＆登録リンクを表示
+    return render_template("login.html",
         FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
         FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
         FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
@@ -67,31 +93,10 @@ def oauth2callback():
     store_credentials_in_session(credentials)
     return redirect(url_for("index"))
 
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        session["user_authenticated"] = True
-        return redirect(url_for("index"))
-
-    return render_template("login.html",
-        FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
-        FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
-        FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
-        FIREBASE_APP_ID=os.getenv("FIREBASE_APP_ID")
-    )
-
-
-@app.route("/result")
-def show_result():
-    return render_template("result.html", site_url="", table_html="", chart_labels=[], chart_data=[], competitors=[])
-
-
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("register"))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))

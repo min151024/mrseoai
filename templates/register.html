@@ -30,6 +30,8 @@
             <a href="{{ url_for('login') }}" class="secondary-button">ログインページへ</a>
         </div>
     </form>
+    <p>すでにアカウントをお持ちの方は <a href="{{ url_for('login') }}">ログインはこちら</a></p>
+
 
     <script>
         const provider = new firebase.auth.GoogleAuthProvider();
