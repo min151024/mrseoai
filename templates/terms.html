@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>利用規約 - Mr.SEO AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <h1>Mr.SEO AI</h1>
+    <div>
+      <a href="{{ url_for('index') }}">トップ</a>
+      <a href="{{ url_for('terms_of_service') }}">利用規約</a>
+      <a href="{{ url_for('privacy_policy') }}">プライバシーポリシー</a>
+      {% if session.credentials %}
+        <a href="{{ url_for('show_result') }}">過去の改善提案</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">ログイン</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <h1>利用規約</h1>
+  <p>本規約は、Mr.SEO AI（以下「当サービス」）を利用する全てのユーザーに適用されます。</p>
+
+  <h2>第1条（適用）</h2>
+  <p>本規約は当サービスの利用条件を定めるものです。</p>
+
+  <h2>第2条（禁止行為）</h2>
+  <ul>
+    <li>法令または公序良俗に反する行為</li>
+    <li>当サービスの運営を妨害する行為</li>
+  </ul>
+
+  <h2>第3条（免責事項）</h2>
+  <p>当サービスの利用により発生した損害について、一切の責任を負いません。</p>
+
+  <h2>第4条（準拠法・管轄）</h2>
+  <p>本規約は日本法に準拠し、紛争は東京地方裁判所を第一審の専属的合意管轄とします。</p>
+</body>
+</html>
