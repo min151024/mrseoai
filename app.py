@@ -124,11 +124,11 @@ def result():
 
 @app.route("/privacy")
 def privacy_policy():
-    return render_template("privacy_policy.html")
+    return render_template("privacy.html")
 
 @app.route("/terms")
 def terms_of_service():
-    return render_template("terms_of_service.html")
+    return render_template("terms.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))

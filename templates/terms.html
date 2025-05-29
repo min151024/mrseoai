@@ -11,8 +11,8 @@
     <h1>Mr.SEO AI</h1>
     <div>
       <a href="{{ url_for('index') }}">トップ</a>
-      <a href="{{ url_for('terms_of_service') }}">利用規約</a>
-      <a href="{{ url_for('privacy_policy') }}">プライバシーポリシー</a>
+      <a href="{{ url_for('terms') }}">利用規約</a>
+      <a href="{{ url_for('privacy') }}">プライバシーポリシー</a>
       {% if session.credentials %}
         <a href="{{ url_for('result') }}">過去の改善提案</a>
       {% else %}
