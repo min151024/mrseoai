@@ -27,13 +27,6 @@ h2 {
     color: #555;
 }
 
-form {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 2rem;
-}
 
 label {
     display: block;
@@ -115,7 +108,7 @@ button[type="submit"]:hover {
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     max-width: 500px;
-    margin: 2rem auto;
+    margin: 2rem auto 2rem 2rem;
 }
 
 form#register-form input[type="email"],
@@ -138,7 +131,6 @@ form#login-form button {
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
-  margin: 0;  /* ← ここもリセット */
 }
 
 #login-form button:hover,
