@@ -11,8 +11,11 @@
 <body>
     <nav>
         <h1>Mr.SEO AI</h1>
-        <a href="{{ url_for('register') }}">新規登録</a>
-        <a href="{{ url_for('index') }}">トップ</a>
+        <div>
+            <a href="{{ url_for('result') }}">過去の改善提案</a>
+            <a href="{{ url_for('register') }}">新規登録</a>
+            <a href="{{ url_for('login') }}">ログイン</a>
+        </div>
     </nav>
 
     <h1>ログイン</h1>
