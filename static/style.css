@@ -76,7 +76,7 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-    background-color: #2980b9;
+    background-color: #005187;
 }
 
 .secondary-button {
@@ -90,7 +90,7 @@ button[type="submit"]:hover {
 }
 
 .link {
-    color: #3498db;
+    color: #005187;
     text-decoration: none;
     font-weight: 600;
 }
@@ -105,9 +105,12 @@ button[type="submit"]:hover {
     padding: 10px;
     margin-top: 10px;
   }
-
+  form#login-form,
   form#register-form {
     background: white;
+    display: flex;
+    gap: 1.5rem;
+    flex-direction: column;
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -115,62 +118,33 @@ button[type="submit"]:hover {
     margin: 2rem auto;
 }
 
-#register-form input[type="email"],
-#register-form input[type="password"] {
-    width: 100%;
-    padding: 0.8rem;
-    margin-bottom: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+form#register-form input[type="email"],
+form#register-form input[type="password"],
+form#login-form input[type="email"],
+form#login-form input[type="password"] {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 0;  /* ← ここをリセット */
 }
 
-#register-form button {
-    background-color: #3498db;
-    color: white;
-    padding: 0.8rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
+form#register-form button,
+form#login-form button {
+  background-color: #3498db;
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0;  /* ← ここもリセット */
 }
 
+#login-form button:hover,
 #register-form button:hover {
-    background-color: #2980b9;
+    background-color: #005187;
 }
-
-
-form#login-form {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    max-width: 500px;
-    margin: 2rem auto;
-}
-
-#login-form input[type="email"],
-#login-form input[type="password"] {
-    width: 100%;
-    padding: 0.8rem;
-    margin-bottom: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-#login-form button {
-    background-color: #3498db;
-    color: white;
-    padding: 0.8rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-#login-form button:hover {
-    background-color: #2980b9;
-}
-
 
 nav {
     display: flex;
