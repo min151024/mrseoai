@@ -13,10 +13,10 @@ if b64:
 else:
     # ローカル等でファイル配置している場合
     CLIENT_SECRETS_FILE = "client_secret.json"
-SCOPES = [
-    "https://www.googleapis.com/auth/webmasters.readonly",  # GSC読み取り
-    "https://www.googleapis.com/auth/analytics.readonly"    # GA読み取り
-]
+    SCOPES = [
+        "https://www.googleapis.com/auth/webmasters.readonly",  # GSC読み取り
+        "https://www.googleapis.com/auth/analytics.readonly"    # GA読み取り
+    ]
 
 def create_flow():
     return Flow.from_client_secrets_file(
