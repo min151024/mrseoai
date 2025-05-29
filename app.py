@@ -20,11 +20,12 @@ def is_oauth_authenticated():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # 未登録 or OAuth未連携なら登録画面へ
-    if not is_authenticated() or not is_oauth_authenticated():
-        return redirect(url_for("register"))
-
     if request.method == "POST":
+        # 未登録・未ログインなら登録画面へ
+        if not is_authenticated() or not is_oauth_authenticated():
+            return redirect(url_for("register"))
+        
+        # ここからは認証済みユーザー向けの処理
         input_url = request.form["url"]
         site_url = to_domain_property(input_url)
         result = process_seo_improvement(site_url)
@@ -39,7 +40,9 @@ def index():
             chatgpt_response=result.get("chatgpt_response", "")
         )
 
+    # GET のときは誰でも index.html を表示
     return render_template("index.html")
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
