@@ -101,6 +101,27 @@ def logout():
     session.clear()
     return redirect(url_for("register"))
 
+@app.route("/result", methods=["GET", "POST"])
+def result():
+    if request.method == "POST":
+        input_url = request.form["url"]
+        site_url = to_domain_property(input_url)
+        data = process_seo_improvement(site_url)
+        return render_template(
+            "result.html",
+            site_url=input_url,
+            table_html=data["table_html"],
+            chart_labels=data["chart_labels"],
+            chart_data=data["chart_data"],
+            competitors=data["competitors"],
+            chatgpt_response=data.get("chatgpt_response", "")
+        )
+
+    past = session.get("past_improvements", [])
+    return render_template("result.html", past_improvements=past)
+
+
+
 @app.route("/privacy")
 def privacy_policy():
     return render_template("privacy_policy.html")

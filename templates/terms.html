@@ -14,12 +14,12 @@
       <a href="{{ url_for('terms_of_service') }}">利用規約</a>
       <a href="{{ url_for('privacy_policy') }}">プライバシーポリシー</a>
       {% if session.credentials %}
-        <a href="{{ url_for('show_result') }}">過去の改善提案</a>
+        <a href="{{ url_for('result') }}">過去の改善提案</a>
       {% else %}
         <a href="{{ url_for('login') }}">ログイン</a>
       {% endif %}
     </div>
-  </nav>
+  </nav>s
 
   <h1>利用規約</h1>
   <p>本規約は、Mr.SEO AI（以下「当サービス」）を利用する全てのユーザーに適用されます。</p>
