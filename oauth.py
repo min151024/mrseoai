@@ -22,7 +22,7 @@ def create_flow():
     return Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE,
         scopes=SCOPES,
-        redirect_uri=url_for("oauth2callback", _external=True)
+        redirect_uri=url_for("oauth2callback", _external=True, _scheme="https")
     )
 
 def get_credentials_from_session():
