@@ -6,8 +6,8 @@ from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 
 SCOPES = [
-        "https://www.googleapis.com/auth/webmasters.readonly",  # GSC読み取り
-        "https://www.googleapis.com/auth/analytics.readonly"    # GA読み取り
+        "https://www.googleapis.com/auth/webmasters.readonly",  
+        "https://www.googleapis.com/auth/analytics.readonly"   
     ]
 
 b64 = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET_JSON_BASE64")

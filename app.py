@@ -21,11 +21,9 @@ def is_oauth_authenticated():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        # 未登録・未ログインなら登録画面へ
-        if not is_authenticated() or not is_oauth_authenticated():
-            return redirect(url_for("register"))
+        #if not is_authenticated() or not is_oauth_authenticated():
+        #   return redirect(url_for("register"))
         
-        # ここからは認証済みユーザー向けの処理
         input_url = request.form["url"]
         site_url = to_domain_property(input_url)
         result = process_seo_improvement(site_url)
