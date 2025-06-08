@@ -3,6 +3,7 @@ from flask import Flask, redirect, session, url_for, request, render_template
 from oauth import create_flow, get_credentials_from_session, store_credentials_in_session
 from main import process_seo_improvement
 import os
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "defaultsecretkey")  # セッション用
