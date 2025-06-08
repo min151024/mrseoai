@@ -14,7 +14,8 @@
       gtag('config', 'G-91XHW9PG44');  
     </script>
 </head>
-<body>
+<body class="flex flex-col min-h-screen">
+    <main class="flex-grow">
     <nav>
         <h1>Mr.SEO AI</h1>
         <div>
@@ -43,6 +44,8 @@
         <pre>{{ result }}</pre>
     </div>
     {% endif %}
+    </main>
+    
     <footer class="text-center py-4 text-sm text-gray-600">
     <a href="{{ url_for('privacy') }}" class="mx-2 underline">プライバシーポリシー</a>
     |
