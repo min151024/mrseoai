@@ -6,6 +6,7 @@
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>SEO データ可視化</title>
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
             <style>
                 table { border-collapse: collapse; width: 100%; }
                 th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
@@ -13,12 +14,13 @@
         </head>
         <body>
         <nav>
-        <h1>Mr.SEO AI</h1>
-        <div>
-            <a href="{{ url_for('result') }}">過去の改善提案</a>
-            <a href="{{ url_for('register') }}">新規登録</a>
-            <a href="{{ url_for('login') }}">ログイン</a>
-        </div>
+            <h1>Mr.SEO AI</h1>
+            <div>
+                <a href="{{ url_for('index') }}">トップページ</a>
+                <a href="{{ url_for('result') }}">過去の改善提案</a>
+                <a href="{{ url_for('register') }}">新規登録</a>
+                <a href="{{ url_for('login') }}">ログイン</a>
+            </div>
         </nav>
         <h3>SEO 指標グラフ</h3>
             <canvas id="metricsChart" width="800" height="300"></canvas>

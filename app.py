@@ -21,8 +21,8 @@ def is_oauth_authenticated():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        #if not is_authenticated() or not is_oauth_authenticated():
-        #   return redirect(url_for("register"))
+        if not is_authenticated() or not is_oauth_authenticated(): #登録していない人は新規登録画面に飛ばされる（登録してから使ってね等のメッセージ必要）
+           return redirect(url_for("register"))
         
         input_url = request.form["url"]
         site_url = to_domain_property(input_url)
