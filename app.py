@@ -1,16 +1,26 @@
 from urllib.parse import urlparse
-from flask import Flask, redirect, session, url_for, request, render_template
+from flask import Flask, redirect, session, url_for, request, render_template, abort
 from oauth import create_flow, get_credentials_from_session, store_credentials_in_session
 from main import process_seo_improvement
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+#os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "defaultsecretkey")  # セッション用
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "defaultsecretkey")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 def to_domain_property(url):
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+
     parsed = urlparse(url)
-    domain = parsed.hostname.replace("www.", "")
+    hostname = parsed.hostname
+    if hostname is None:
+        abort(400, "URLが不正です。https://example.com のように入力してください。")
+
+    domain = hostname.replace("www.", "")
     return f"sc-domain:{domain}"
 
 def is_authenticated():
