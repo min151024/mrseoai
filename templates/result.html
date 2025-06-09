@@ -56,6 +56,34 @@ new Chart(ctx, {
 <h3>ChatGPTによる改善案</h3>
     <div class="chatgpt-response">
         <pre>{{ chatgpt_response }}</pre>
-    </div>            
+    </div> 
+    
+<section>
+    <h2>過去の改善提案一覧</h2>
+        {% if history %}
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr>
+                <th class="border px-2 py-1">日時</th>
+                <th class="border px-2 py-1">入力 URL</th>
+                <th class="border px-2 py-1">提案サマリ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in history %}
+              <tr class="border-t">
+                <td class="border px-2 py-1">{{ item.timestamp }}</td>
+                <td class="border px-2 py-1">
+                  <a href="{{ item.input_url }}" target="_blank">{{ item.input_url }}</a>
+                </td>
+                <td class="border px-2 py-1">{{ item.chatgpt_response }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>まだ改善提案の履歴はありません。</p>
+        {% endif %}
+</section>
 </body>
 </html>

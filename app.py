@@ -139,24 +139,76 @@ def logout():
     session.clear()
     return redirect(url_for("register"))
 
+from flask import Flask, request, render_template, session, redirect, url_for, abort
+from datetime import datetime
+from oauth import create_flow
+from main import process_seo_improvement
+# Firestore 初期化済みと仮定
+# from firebase_admin import firestore
+# db = firestore.client()
+
 @app.route("/result", methods=["GET", "POST"])
 def result():
+    if not session.get("user_authenticated") or not session.get("uid"):
+        return redirect(url_for("register"))
+
+    uid = session["uid"]
+    new_item = None
+
     if request.method == "POST":
         input_url = request.form["url"]
-        site_url = to_domain_property(input_url)
-        data = process_seo_improvement(site_url)
-        return render_template(
-            "result.html",
-            site_url=input_url,
-            table_html=data["table_html"],
-            chart_labels=data["chart_labels"],
-            chart_data=data["chart_data"],
-            competitors=data["competitors"],
-            chatgpt_response=data.get("chatgpt_response", "")
-        )
+        site_url  = to_domain_property(input_url)
+        data      = process_seo_improvement(site_url)
 
-    past = session.get("past_improvements", [])
-    return render_template("result.html", past_improvements=past)
+        doc = {
+          "uid": uid,
+          "input_url": input_url,
+          "result": data,
+          "timestamp": datetime.utcnow()
+        }
+        db.collection("improvements").add(doc)
+
+        new_item = {
+          "input_url": input_url,
+          "result":    data,
+          "timestamp": doc["timestamp"]
+        }
+
+    history = []
+    docs = (
+      db.collection("improvements")
+        .where("uid", "==", uid)
+        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+        .stream()
+    )
+    for d in docs:
+        rec = d.to_dict()
+        history.append({
+          "input_url": rec["input_url"],
+          "timestamp": rec["timestamp"].strftime("%Y-%m-%d %H:%M"),
+          "chatgpt_response": rec["result"].get("chatgpt_response", "")
+        })
+
+    chart_labels = []
+    chart_data   = {}
+    if new_item:
+        chart_labels = [ new_item["input_url"] ]
+        chart_data = {
+          "clicks":      [new_item["result"]["clicks"]],
+          "impressions": [new_item["result"]["impressions"]],
+          "ctr":         [new_item["result"]["ctr"]],
+          "position":    [new_item["result"]["position"]],
+          "conversions": [new_item["result"].get("conversions", 0)]
+        }
+
+    return render_template(
+      "result.html",
+      new_item=new_item,
+      chart_labels=chart_labels,
+      chart_data=chart_data,
+      history=history
+    )
+
 
 @app.route("/privacy")
 def privacy():
@@ -165,30 +217,6 @@ def privacy():
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
-
-@app.route("/history")
-def history():
-    if not is_authenticated() or "uid" not in session:
-        return redirect(url_for("login"))
-
-    uid = session["uid"]
-    # uid フィルタ＋降順ソート
-    docs = db.collection("improvements")\
-             .where("uid", "==", uid)\
-             .order_by("timestamp", direction=firestore.Query.DESCENDING)\
-             .stream()
-
-    history = []
-    for d in docs:
-        data = d.to_dict()
-        history.append({
-            "input_url": data["input_url"],
-            "timestamp": data["timestamp"].strftime("%Y-%m-%d %H:%M"),
-            "result": data["result"]         
-        })
-
-    return render_template("history.html", history=history)
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
