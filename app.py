@@ -42,7 +42,7 @@ def is_oauth_authenticated():
 def index():
     if request.method == "POST":
         if not is_authenticated() or not is_oauth_authenticated(): #登録していない人は新規登録画面に飛ばされる（登録してから使ってね等のメッセージ必要）
-           return redirect(url_for("register"))
+           return redirect(url_for("login"))
         
         input_url = request.form["url"]
         site_url = to_domain_property(input_url)
@@ -150,7 +150,7 @@ from main import process_seo_improvement
 @app.route("/result", methods=["GET", "POST"])
 def result():
     if not session.get("user_authenticated") or not session.get("uid"):
-        return redirect(url_for("register"))
+        return redirect(url_for("login"))
 
     uid = session["uid"]
     new_item = None
