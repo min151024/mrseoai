@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>過去の改善提案一覧</h2>
+  <table class="w-full text-left">
+    <thead>
+      <tr>
+        <th class="px-2 py-1">日時</th>
+        <th class="px-2 py-1">入力 URL</th>
+        <th class="px-2 py-1">チャットGPT 提案</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for item in history %}
+      <tr class="border-t">
+        <td class="px-2 py-1">{{ item.timestamp }}</td>
+        <td class="px-2 py-1"><a href="{{ item.input_url }}" target="_blank">{{ item.input_url }}</a></td>
+        <td class="px-2 py-1">{{ item.result.chatgpt_response }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

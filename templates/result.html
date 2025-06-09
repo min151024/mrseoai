@@ -23,53 +23,35 @@
             </div>
         </nav>
         <h3>SEO 指標グラフ</h3>
-            <canvas id="metricsChart" width="800" height="300"></canvas>
-            <script>
-                const ctx = document.getElementById('metricsChart').getContext('2d');
-                const chart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['https://mrseoai.com/', 'https://mrseoai.com/'],
-                        datasets: [
-                            {
-                                label: 'クリック数',
-                                data: [1, 0],
-                                backgroundColor: 'rgba(54, 162, 235, 0.6)'
-                            },
-                            {
-                                label: '表示回数',
-                                data: [7, 1],
-                                backgroundColor: 'rgba(255, 206, 86, 0.6)'
-                            },
-                            {
-                                label: 'CTR（%）',
-                                data: [14.29, 0.0],
-                                backgroundColor: 'rgba(75, 192, 192, 0.6)'
-                            },
-                            {
-                                label: '平均順位',
-                                data: [2.43, 96.0],
-                                backgroundColor: 'rgba(153, 102, 255, 0.6)'
-                            },
-                            {
-                                label: 'コンバージョン数',
-                                data: [0, 0],
-                                backgroundColor: 'rgba(255, 99, 132, 0.6)'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { position: 'top' },
-                            title: { display: true, text: '各ページのSEO指標比較' }
-                        },
-                        scales: {
-                            y: { beginAtZero: true }
-                        }
-                    }
-                });
-            </script>
+        <canvas id="metricsChart" width="800" height="300"></canvas>
+        <script>
+        // Flask から渡された配列を JS に展開
+        const labels = {{ chart_labels | tojson }};
+        const data = {{ chart_data | tojson }};
+        
+        const ctx = document.getElementById('metricsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+            labels: labels,
+            datasets: [
+                { label: 'クリック数',      data: data.clicks      },
+                { label: '表示回数',      data: data.impressions },
+                { label: 'CTR（%）',      data: data.ctr         },
+                { label: '平均順位',      data: data.position    },
+                { label: 'コンバージョン数', data: data.conversions }
+            ]
+            },
+            options: {
+            responsive: true,
+            plugins: {
+                legend:   { position: 'top' },
+                title:    { display: true, text: '入力 URL の SEO 指標' }
+            },
+            scales: { y: { beginAtZero: true } }
+            }
+        });
+        </script>
 
         <h3>ChatGPTによる改善案</h3>
             <div class="chatgpt-response">

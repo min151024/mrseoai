@@ -2,9 +2,18 @@ from urllib.parse import urlparse
 from flask import Flask, redirect, session, url_for, request, render_template, abort
 from oauth import create_flow, get_credentials_from_session, store_credentials_in_session
 from main import process_seo_improvement
+import firebase_admin
+from firebase_admin import credentials, firestore
+from firebase_admin import auth as firebase_auth
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
+from datetime import datetime
+from google.cloud import firestore
 #os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
+
+cred = credentials.Certificate("credentials.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "defaultsecretkey")
@@ -39,6 +48,24 @@ def index():
         site_url = to_domain_property(input_url)
         result = process_seo_improvement(site_url)
 
+        chart_labels = [ input_url ]
+        chart_data = {
+        "clicks":      [ result["clicks"] ],
+        "impressions": [ result["impressions"] ],
+        "ctr":         [ result["ctr"] ],
+        "position":    [ result["position"] ],
+        "conversions": [ result.get("conversions", 0) ]
+        }
+
+        uid = session["uid"]
+        doc = {
+            "uid": uid,
+            "input_url": input_url,
+            "result": result,               
+            "timestamp": datetime.utcnow()
+        }
+        db.collection("improvements").add(doc)
+
         return render_template(
             "result.html",
             site_url=input_url,
@@ -58,7 +85,8 @@ def register():
     if request.method == "POST":
         # Firebase 登録完了
         session["user_authenticated"] = True
-        # Google OAuth 開始
+        firebase_user = firebase_auth.get_user_by_email(request.form["email"])
+        session["uid"] = firebase_user.uid
         flow = create_flow()
         auth_url, _ = flow.authorization_url(
             prompt="consent",
@@ -80,7 +108,8 @@ def login():
     if request.method == "POST":
         # Firebase ログイン成功
         session["user_authenticated"] = True
-        # Google OAuth 開始
+        firebase_user = firebase_auth.get_user_by_email(request.form["email"])
+        session["uid"] = firebase_user.uid
         flow = create_flow()
         auth_url, _ = flow.authorization_url(
             prompt="consent",
@@ -129,8 +158,6 @@ def result():
     past = session.get("past_improvements", [])
     return render_template("result.html", past_improvements=past)
 
-
-
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
@@ -138,6 +165,30 @@ def privacy():
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
+
+@app.route("/history")
+def history():
+    if not is_authenticated() or "uid" not in session:
+        return redirect(url_for("login"))
+
+    uid = session["uid"]
+    # uid フィルタ＋降順ソート
+    docs = db.collection("improvements")\
+             .where("uid", "==", uid)\
+             .order_by("timestamp", direction=firestore.Query.DESCENDING)\
+             .stream()
+
+    history = []
+    for d in docs:
+        data = d.to_dict()
+        history.append({
+            "input_url": data["input_url"],
+            "timestamp": data["timestamp"].strftime("%Y-%m-%d %H:%M"),
+            "result": data["result"]          # 必要なサブフィールドだけ取り出してもOK
+        })
+
+    return render_template("history.html", history=history)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
