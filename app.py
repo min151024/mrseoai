@@ -3,22 +3,22 @@ from flask import Flask, redirect, session, url_for, request, render_template, a
 from oauth import create_flow, get_credentials_from_session, store_credentials_in_session
 from main import process_seo_improvement
 import firebase_admin
-from firebase_admin import credentials, firestore
-from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials, firestore, auth as firebase_auth
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 from datetime import datetime
 from google.cloud import firestore
 #os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
 
-cred = credentials.Certificate("credentials.json")
-firebase_admin.initialize_app(cred)
-db = firestore.client()
-
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "defaultsecretkey")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
+
+
+cred = credentials.Certificate("credentials.json")
+firebase_admin.initialize_app(cred)
+db = firestore.Client()
 
 def to_domain_property(url):
     if not url.startswith(("http://", "https://")):
@@ -184,7 +184,7 @@ def history():
         history.append({
             "input_url": data["input_url"],
             "timestamp": data["timestamp"].strftime("%Y-%m-%d %H:%M"),
-            "result": data["result"]          # 必要なサブフィールドだけ取り出してもOK
+            "result": data["result"]         
         })
 
     return render_template("history.html", history=history)
