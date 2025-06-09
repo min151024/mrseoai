@@ -1,62 +1,61 @@
 
-        <!DOCTYPE html>
-        <html lang="ja">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>SEO データ可視化</title>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-            <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-            <style>
-                table { border-collapse: collapse; width: 100%; }
-                th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-            </style>
-        </head>
-        <body>
-        <nav>
-            <h1>Mr.SEO AI</h1>
-            <div>
-                <a href="{{ url_for('index') }}">トップページ</a>
-                <a href="{{ url_for('result') }}">過去の改善提案</a>
-                <a href="{{ url_for('register') }}">新規登録</a>
-                <a href="{{ url_for('login') }}">ログイン</a>
-            </div>
-        </nav>
-        <h3>SEO 指標グラフ</h3>
-        <canvas id="metricsChart" width="800" height="300"></canvas>
-        <script>
-        // Flask から渡された配列を JS に展開
-        const labels = {{ chart_labels | tojson }};
-        const data = {{ chart_data | tojson }};
-        
-        const ctx = document.getElementById('metricsChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-            labels: labels,
-            datasets: [
-                { label: 'クリック数',      data: data.clicks      },
-                { label: '表示回数',      data: data.impressions },
-                { label: 'CTR（%）',      data: data.ctr         },
-                { label: '平均順位',      data: data.position    },
-                { label: 'コンバージョン数', data: data.conversions }
-            ]
-            },
-            options: {
-            responsive: true,
-            plugins: {
-                legend:   { position: 'top' },
-                title:    { display: true, text: '入力 URL の SEO 指標' }
-            },
-            scales: { y: { beginAtZero: true } }
-            }
-        });
-        </script>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO データ可視化</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+<nav>
+    <h1>Mr.SEO AI</h1>
+    <div>
+        <a href="{{ url_for('index') }}">トップページ</a>
+        <a href="{{ url_for('result') }}">過去の改善提案</a>
+        <a href="{{ url_for('register') }}">新規登録</a>
+        <a href="{{ url_for('login') }}">ログイン</a>
+    </div>
+</nav>
+<h3>SEO 指標グラフ</h3>
+<canvas id="metricsChart" width="800" height="300"></canvas>
+<script>
+// Flask から渡された配列を JS に展開
+const labels = {{ chart_labels | tojson }};
+const data = {{ chart_data | tojson }};
 
-        <h3>ChatGPTによる改善案</h3>
-            <div class="chatgpt-response">
-                <pre>{{ chatgpt_response }}</pre>
-            </div>            
-        </body>
-        </html>
-        
+const ctx = document.getElementById('metricsChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+    labels: labels,
+    datasets: [
+        { label: 'クリック数',      data: data.clicks      },
+        { label: '表示回数',      data: data.impressions },
+        { label: 'CTR（%）',      data: data.ctr         },
+        { label: '平均順位',      data: data.position    },
+        { label: 'コンバージョン数', data: data.conversions }
+    ]
+    },
+    options: {
+    responsive: true,
+    plugins: {
+        legend:   { position: 'top' },
+        title:    { display: true, text: '入力 URL の SEO 指標' }
+    },
+    scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+
+<h3>ChatGPTによる改善案</h3>
+    <div class="chatgpt-response">
+        <pre>{{ chatgpt_response }}</pre>
+    </div>            
+</body>
+</html>
