@@ -139,13 +139,6 @@ def logout():
     session.clear()
     return redirect(url_for("register"))
 
-from flask import Flask, request, render_template, session, redirect, url_for, abort
-from datetime import datetime
-from oauth import create_flow
-from main import process_seo_improvement
-# Firestore 初期化済みと仮定
-# from firebase_admin import firestore
-# db = firestore.client()
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
@@ -200,6 +193,15 @@ def result():
           "position":    [new_item["result"]["position"]],
           "conversions": [new_item["result"].get("conversions", 0)]
         }
+
+    formatted = []
+    for c in raw_competitors:
+        formatted.append({
+            "position": c["rank"],
+            "title":    c["page_title"],
+            "url":      c["link"]
+        })
+    result["competitors"] = formatted
 
     return render_template(
       "result.html",

@@ -53,6 +53,36 @@ new Chart(ctx, {
 });
 </script>
 
+<section class="mt-8">
+    <h3 class="text-xl font-semibold mb-2">競合サイト情報</h3>
+    {% if competitors %}
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="px-2 py-1 border">順位</th>
+            <th class="px-2 py-1 border">タイトル</th>
+            <th class="px-2 py-1 border">URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for comp in competitors %}
+            <tr class="border-t">
+              <td class="px-2 py-1 border">{{ comp.position }}</td>
+              <td class="px-2 py-1 border">{{ comp.title }}</td>
+              <td class="px-2 py-1 border">
+                <a href="{{ comp.url }}" target="_blank" class="text-blue-600 underline">
+                  {{ comp.url }}
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-gray-600">競合情報が見つかりませんでした。</p>
+    {% endif %}
+  </section>
+
 <h3>改善案</h3>
     <div class="chatgpt-response">
         <pre>{{ chatgpt_response }}</pre>
