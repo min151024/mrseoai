@@ -142,75 +142,86 @@ def logout():
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
+    # 認証チェック
     if not session.get("user_authenticated") or not session.get("uid"):
         return redirect(url_for("login"))
 
     uid = session["uid"]
-    new_item = None
 
+    # POST/GET 共通で使う変数を先に初期化
+    new_item = None
+    chart_labels = []
+    chart_data   = {}
+    raw_competitors = []
+    competitors     = []
+    history         = []
+
+    # --- 新規分析処理（フォーム送信時のみ） ---
     if request.method == "POST":
         input_url = request.form["url"]
         site_url  = to_domain_property(input_url)
         data      = process_seo_improvement(site_url)
 
-        doc = {
-          "uid": uid,
-          "input_url": input_url,
-          "result": data,
-          "timestamp": datetime.utcnow()
-        }
-        db.collection("improvements").add(doc)
+        # 取得した競合リストを保持
+        raw_competitors = data.get("competitors", [])
 
+        # Firestore に永続化
+        timestamp = datetime.utcnow()
+        db.collection("improvements").add({
+            "uid": uid,
+            "input_url": input_url,
+            "result": data,
+            "timestamp": timestamp
+        })
+
+        # 新規アイテム用データ
         new_item = {
-          "input_url": input_url,
-          "result":    data,
-          "timestamp": doc["timestamp"]
+            "input_url": input_url,
+            "result":    data,
+            "timestamp": timestamp
         }
 
-    history = []
+        # グラフ用ラベル＆データ
+        chart_labels = [input_url]
+        chart_data = {
+            "clicks":      [data.get("clicks", 0)],
+            "impressions": [data.get("impressions", 0)],
+            "ctr":         [data.get("ctr", 0)],
+            "position":    [data.get("position", 0)],
+            "conversions": [data.get("conversions", 0)]
+        }
+
+        # 競合リストをテンプレート向けにフォーマット
+        for comp in raw_competitors:
+            competitors.append({
+                "position": comp.get("position") or comp.get("rank"),
+                "title":    comp.get("title")    or comp.get("page_title"),
+                "url":      comp.get("url")      or comp.get("link")
+            })
+
+    # --- 履歴取得（常に実行） ---
     docs = (
-      db.collection("improvements")
-        .where("uid", "==", uid)
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
-        .stream()
+        db.collection("improvements")
+          .where("uid", "==", uid)
+          .order_by("timestamp", direction=firestore.Query.DESCENDING)
+          .stream()
     )
     for d in docs:
         rec = d.to_dict()
         history.append({
-          "input_url": rec["input_url"],
-          "timestamp": rec["timestamp"].strftime("%Y-%m-%d %H:%M"),
-          "chatgpt_response": rec["result"].get("chatgpt_response", "")
+            "input_url":        rec.get("input_url"),
+            "timestamp":        rec.get("timestamp").strftime("%Y-%m-%d %H:%M"),
+            "chatgpt_response": rec.get("result", {}).get("chatgpt_response", "")
         })
-
-    chart_labels = []
-    chart_data   = {}
-    if new_item:
-        chart_labels = [ new_item["input_url"] ]
-        chart_data = {
-          "clicks":      [new_item["result"]["clicks"]],
-          "impressions": [new_item["result"]["impressions"]],
-          "ctr":         [new_item["result"]["ctr"]],
-          "position":    [new_item["result"]["position"]],
-          "conversions": [new_item["result"].get("conversions", 0)]
-        }
-
-    formatted = []
-    for c in raw_competitors:
-        formatted.append({
-            "position": c["rank"],
-            "title":    c["page_title"],
-            "url":      c["link"]
-        })
-    result["competitors"] = formatted
 
     return render_template(
-      "result.html",
-      new_item=new_item,
-      chart_labels=chart_labels,
-      chart_data=chart_data,
-      history=history
+        "result.html",
+        new_item=new_item,
+        chart_labels=chart_labels,
+        chart_data=chart_data,
+        competitors=competitors,
+        history=history
     )
-
 
 @app.route("/privacy")
 def privacy():
