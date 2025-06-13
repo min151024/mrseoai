@@ -35,58 +35,51 @@
     </form>
 
     <script>
-        const provider = new firebase.auth.GoogleAuthProvider();
-
-        firebase.auth().signInWithPopup(provider)
-        .then((result) => {
-            // ログイン成功
-            fetch("/login", {  // Flaskセッション用
+    const firebaseConfig = {
+        apiKey:        "{{ FIREBASE_API_KEY }}",
+        authDomain:    "{{ FIREBASE_AUTH_DOMAIN }}",
+        projectId:     "{{ FIREBASE_PROJECT_ID }}",
+        appId:         "{{ FIREBASE_APP_ID }}"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+    
+      // フォーム送信時の処理
+      async function onRegister(e) {
+        e.preventDefault();
+        const email    = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        try {
+          // 1) クライアントでユーザー作成
+          const userCred = await auth.createUserWithEmailAndPassword(email, password);
+          // 2) ID トークンを取得
+          const idToken = await userCred.user.getIdToken();
+          console.log("取得した idToken:", idToken);
+    
+          // 3) JSON POST でサーバーに送信
+          const res = await fetch("/register", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ login: true })
-            }).then(() => {
-            window.location.href = "/index";
-            });
-        })
-        .catch((error) => {
-            alert("Googleログイン失敗：" + error.message);
-        });
-
-        const firebaseConfig = {
-            apiKey: "{{ FIREBASE_API_KEY }}",
-            authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
-            projectId: "{{ FIREBASE_PROJECT_ID }}",
-            appId: "{{ FIREBASE_APP_ID }}"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-
-        async function onRegister(e) {
-            e.preventDefault();
-            const email    = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            try {
-                // クライアントでユーザー作成
-                const userCred = await auth.createUserWithEmailAndPassword(email, password);
-                // ID トークンを取得
-                const idToken = await userCred.user.getIdToken();
-                // サーバーに POST
-                const res = await fetch("/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ idToken })
-                });
-                if (res.redirected) {
-                // OAuth フローへリダイレクト
-                window.location.href = res.url;
-                } else {
-                alert("登録失敗");
-                }
-            } catch (err) {
-                alert("エラー: " + err.message);
-            }
-    }
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            body: JSON.stringify({ idToken: idToken })
+          });
+    
+          if (res.redirected) {
+            // OAuth フローへリダイレクト
+            window.location.href = res.url;
+          } else {
+            const text = await res.text();
+            alert("登録失敗:\n" + text);
+          }
+        } catch (err) {
+          alert("エラー: " + err.message);
+        }
+      }
+    
+      // ページ読み込み後にイベントをバインド
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("registerForm");
+        form.addEventListener("submit", onRegister);
+      });
     </script>
 </body>
 </html>
