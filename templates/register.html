@@ -62,26 +62,31 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const email = sessionStorage.getItem('email');
-            if (email) {
-                document.getElementById('email').value = email;
-            }
-        });
-
-        document.getElementById('register-form').addEventListener('submit', function(e) {
+        async function onRegister(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(() => {
-                    this.submit();
-                })
-                .catch(error => {
-                    alert("登録エラー: " + error.message);
+            const email    = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            try {
+                // クライアントでユーザー作成
+                const userCred = await auth.createUserWithEmailAndPassword(email, password);
+                // ID トークンを取得
+                const idToken = await userCred.user.getIdToken();
+                // サーバーに POST
+                const res = await fetch("/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken })
                 });
-        });
+                if (res.redirected) {
+                // OAuth フローへリダイレクト
+                window.location.href = res.url;
+                } else {
+                alert("登録失敗");
+                }
+            } catch (err) {
+                alert("エラー: " + err.message);
+            }
+    }
     </script>
 </body>
 </html>

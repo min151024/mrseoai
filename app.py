@@ -79,14 +79,24 @@ def index():
     # GET のときは誰でも index.html を表示
     return render_template("index.html")
 
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        # Firebase 登録完了
+        # JSON ボディから ID トークンを取り出す
+        body = request.get_json(silent=True)
+        if not body or "idToken" not in body:
+            abort(400, "idToken がありません")
+
+        # Firebase Admin SDK でトークンを検証し、UID を取得
+        try:
+            decoded = firebase_auth.verify_id_token(body["idToken"])
+        except Exception as e:
+            abort(400, f"トークンの検証に失敗しました: {e}")
+
         session["user_authenticated"] = True
-        firebase_user = firebase_auth.get_user_by_email(request.form["email"])
-        session["uid"] = firebase_user.uid
+        session["uid"] = decoded["uid"]
+
+        # そのまま Google OAuth フロー開始
         flow = create_flow()
         auth_url, _ = flow.authorization_url(
             prompt="consent",
@@ -95,7 +105,7 @@ def register():
         )
         return redirect(auth_url)
 
-    # GET時は登録フォーム＆ログインリンクを表示
+    # GET時は クライアント登録フォーム を表示
     return render_template("register.html",
         FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
         FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
