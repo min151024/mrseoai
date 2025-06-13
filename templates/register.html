@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ユーザー登録 - Mr.SEO AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
     <nav>
@@ -35,51 +35,48 @@
     </form>
 
     <script>
-    const firebaseConfig = {
-        apiKey:        "{{ FIREBASE_API_KEY }}",
-        authDomain:    "{{ FIREBASE_AUTH_DOMAIN }}",
-        projectId:     "{{ FIREBASE_PROJECT_ID }}",
-        appId:         "{{ FIREBASE_APP_ID }}"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
+        // Firebase 初期化（互換版）
+        const firebaseConfig = {
+          apiKey:        "{{ FIREBASE_API_KEY }}",
+          authDomain:    "{{ FIREBASE_AUTH_DOMAIN }}",
+          projectId:     "{{ FIREBASE_PROJECT_ID }}",
+          appId:         "{{ FIREBASE_APP_ID }}"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
     
-      // フォーム送信時の処理
-      async function onRegister(e) {
-        e.preventDefault();
-        const email    = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
-        try {
-          // 1) クライアントでユーザー作成
-          const userCred = await auth.createUserWithEmailAndPassword(email, password);
-          // 2) ID トークンを取得
-          const idToken = await userCred.user.getIdToken();
-          console.log("取得した idToken:", idToken);
+        // フォーム送信時の処理
+        async function onRegister(e) {
+          e.preventDefault();
+          const email    = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          try {
+            // 1) ユーザー作成
+            const userCred = await auth.createUserWithEmailAndPassword(email, password);
+            // 2) ID トークン取得
+            const idToken = await userCred.user.getIdToken();
+            console.log("取得した idToken:", idToken);
     
-          // 3) JSON POST でサーバーに送信
-          const res = await fetch("/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-            body: JSON.stringify({ idToken: idToken })
-          });
+            // 3) JSON でサーバーへ送信
+            const res = await fetch("/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json; charset=utf-8" },
+              body: JSON.stringify({ idToken })
+            });
     
-          if (res.redirected) {
-            // OAuth フローへリダイレクト
-            window.location.href = res.url;
-          } else {
-            const text = await res.text();
-            alert("登録失敗:\n" + text);
+            if (res.redirected) {
+              window.location.href = res.url;
+            } else {
+              alert("登録失敗:\n" + await res.text());
+            }
+          } catch (err) {
+            alert("エラー: " + err.message);
           }
-        } catch (err) {
-          alert("エラー: " + err.message);
         }
-      }
     
-      // ページ読み込み後にイベントをバインド
-      document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById("registerForm");
-        form.addEventListener("submit", onRegister);
-      });
-    </script>
+        // 正しい ID でバインドする
+        document.getElementById("registerForm")
+          .addEventListener("submit", onRegister);
+      </script>
 </body>
 </html>
