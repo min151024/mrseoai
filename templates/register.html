@@ -34,48 +34,33 @@
     </form>
 
     <script>
-        // Firebase 初期化（互換版）
-        const firebaseConfig = {
-          apiKey:        "{{ FIREBASE_API_KEY }}",
-          authDomain:    "{{ FIREBASE_AUTH_DOMAIN }}",
-          projectId:     "{{ FIREBASE_PROJECT_ID }}",
-          appId:         "{{ FIREBASE_APP_ID }}"
-        };
-        firebase.initializeApp(firebaseConfig);
+        // …既存の Firebase 初期化コードの下に追記…
         const auth = firebase.auth();
-    
-        // フォーム送信時の処理
+      
         async function onRegister(e) {
           e.preventDefault();
+      
           const email    = document.getElementById("email").value;
           const password = document.getElementById("password").value;
+      
           try {
-            // 1) ユーザー作成
             const userCred = await auth.createUserWithEmailAndPassword(email, password);
-            // 2) ID トークン取得
-            const idToken = await userCred.user.getIdToken();
+   
+            const idToken = await userCred.user.getIdToken(/* forceRefresh */ true);
             console.log("取得した idToken:", idToken);
-    
-            // 3) JSON でサーバーへ送信
-            const res = await fetch("/register", {
-              method: "POST",
-              headers: { "Content-Type": "application/json; charset=utf-8" },
-              body: JSON.stringify({ idToken })
-            });
-    
-            if (res.redirected) {
-              window.location.href = res.url;
-            } else {
-              alert("登録失敗:\n" + await res.text());
-            }
+            document.cookie = `idToken=${idToken}; SameSite=Lax; path=/`;
+            window.location.href = "/register";
+      
           } catch (err) {
-            alert("エラー: " + err.message);
+            console.error(err);
+            alert("登録中にエラーが発生しました:\n" + err.message);
           }
         }
-    
-        // 正しい ID でバインドする
-        document.getElementById("register-form")
+      
+        // フォームの submit にバインド
+        document
+          .getElementById("register-form")
           .addEventListener("submit", onRegister);
-      </script>
+      </script>      
 </body>
 </html>
