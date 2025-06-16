@@ -34,7 +34,7 @@
     </form>
 
     <script>
-        // …既存の Firebase 初期化コードの下に追記…
+        console.log("Loaded register.js");  
         const auth = firebase.auth();
       
         async function onRegister(e) {
@@ -57,7 +57,10 @@
           }
         }
       
-        // フォームの submit にバインド
+        const form = document.getElementById("register-form");
+            console.log("form:", form);
+            form.addEventListener("submit", onRegister);
+
         document
           .getElementById("register-form")
           .addEventListener("submit", onRegister);
