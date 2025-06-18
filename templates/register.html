@@ -59,7 +59,7 @@
               console.log("取得した idToken:", idToken);
     
               document.cookie = `idToken=${idToken}; SameSite=Lax; path=/`;
-              window.location.href = "/register";
+              window.location.href = "{{url_for('index')}}";
             } catch (err) {
               console.error(err);
               alert("登録中にエラーが発生しました:\n" + err.message);
