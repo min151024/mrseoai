@@ -45,26 +45,29 @@
           // Firebase 初期化＆Auth インスタンス取得
           firebase.initializeApp(firebaseConfig);
           const auth = firebase.auth();
-    
-          // フォーム送信時に idToken を取得して Cookie にセット、その後同じルートへ POST
+
           const form = document.getElementById("register-form");
-          form.addEventListener("submit", async (e) => {
+            form.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const email    = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-    
-            try {
-              const userCred = await auth.createUserWithEmailAndPassword(email, password);
-              const idToken  = await userCred.user.getIdToken(/* forceRefresh */ true);
-              console.log("取得した idToken:", idToken);
-    
-              document.cookie = `idToken=${idToken}; SameSite=Lax; path=/`;
-              window.location.href = "{{url_for('index')}}";
-            } catch (err) {
-              console.error(err);
-              alert("登録中にエラーが発生しました:\n" + err.message);
+
+            // 現在のユーザーからトークン取得
+            const idToken = await auth.currentUser.getIdToken(/* forceRefresh */ true);
+
+            // サーバーにPOSTして、リダイレクトをそのまま追従
+            const res = await fetch("{{ url_for('register') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken })
+            });
+
+            if (res.redirected) {
+                // サーバーが 302 で返す Google 同意画面へ飛ぶ
+                window.location.href = res.url;
+            } else {
+                console.error(await res.text());
+                alert("予期しないレスポンスが返ってきました");
             }
-          });
+            });
         });
       </script>      
 </body>
