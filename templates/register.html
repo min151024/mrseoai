@@ -34,36 +34,38 @@
     </form>
 
     <script>
-        console.log("Loaded register.js");  
-        const auth = firebase.auth();
-      
-        async function onRegister(e) {
-          e.preventDefault();
-      
-          const email    = document.getElementById("email").value;
-          const password = document.getElementById("password").value;
-      
-          try {
-            const userCred = await auth.createUserWithEmailAndPassword(email, password);
-   
-            const idToken = await userCred.user.getIdToken(/* forceRefresh */ true);
-            console.log("取得した idToken:", idToken);
-            document.cookie = `idToken=${idToken}; SameSite=Lax; path=/`;
-            window.location.href = "/register";
-      
-          } catch (err) {
-            console.error(err);
-            alert("登録中にエラーが発生しました:\n" + err.message);
-          }
-        }
-      
-        const form = document.getElementById("register-form");
-            console.log("form:", form);
-            form.addEventListener("submit", onRegister);
-
-        document
-          .getElementById("register-form")
-          .addEventListener("submit", onRegister);
+        document.addEventListener("DOMContentLoaded", () => {
+          // Flask から渡された環境変数を埋め込んだ設定
+          const firebaseConfig = {
+            apiKey:        "{{ FIREBASE_API_KEY }}",
+            authDomain:    "{{ FIREBASE_AUTH_DOMAIN }}",
+            projectId:     "{{ FIREBASE_PROJECT_ID }}",
+            appId:         "{{ FIREBASE_APP_ID }}"
+          };
+          // Firebase 初期化＆Auth インスタンス取得
+          firebase.initializeApp(firebaseConfig);
+          const auth = firebase.auth();
+    
+          // フォーム送信時に idToken を取得して Cookie にセット、その後同じルートへ POST
+          const form = document.getElementById("register-form");
+          form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email    = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+    
+            try {
+              const userCred = await auth.createUserWithEmailAndPassword(email, password);
+              const idToken  = await userCred.user.getIdToken(/* forceRefresh */ true);
+              console.log("取得した idToken:", idToken);
+    
+              document.cookie = `idToken=${idToken}; SameSite=Lax; path=/`;
+              window.location.href = "/register";
+            } catch (err) {
+              console.error(err);
+              alert("登録中にエラーが発生しました:\n" + err.message);
+            }
+          });
+        });
       </script>      
 </body>
 </html>
