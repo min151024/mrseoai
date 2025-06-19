@@ -35,7 +35,6 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-          // Flask から渡された環境変数を埋め込んだ設定
           const firebaseConfig = {
             apiKey:        "{{ FIREBASE_API_KEY }}",
             authDomain:    "{{ FIREBASE_AUTH_DOMAIN }}",
@@ -66,7 +65,8 @@
               const res = await fetch("{{ url_for('register') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ idToken })
+                body: JSON.stringify({ idToken }),
+                redirect: "manual"
               });
     
               // 4) サーバーが 302 で返す認可URLへリダイレクト
