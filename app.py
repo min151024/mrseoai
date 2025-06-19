@@ -101,7 +101,7 @@ def register():
         auth_url, _ = flow.authorization_url(
             prompt="consent",
             access_type="offline",
-            include_granted_scopes=True
+            include_granted_scopes="true"
         )
         return jsonify({ "auth_url": auth_url })
 
