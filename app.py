@@ -1,5 +1,5 @@
 from urllib.parse import urlparse
-from flask import Flask, redirect, session, url_for, request, render_template, abort
+from flask import Flask, jsonify, redirect, session, url_for, request, render_template, abort
 from oauth import create_flow, get_credentials_from_session, store_credentials_in_session
 from main import process_seo_improvement
 import firebase_admin
@@ -103,7 +103,7 @@ def register():
             access_type="offline",
             include_granted_scopes=True
         )
-        return redirect(auth_url)
+        return jsonify({ "auth_url": auth_url })
 
     # GET時は クライアント登録フォーム を表示
     return render_template("register.html",

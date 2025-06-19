@@ -66,20 +66,20 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ idToken }),
-                redirect: "manual"
               });
-    
-              // 4) サーバーが 302 で返す認可URLへリダイレクト
-              if (res.redirected) {
-                window.location.href = res.url;
-              } else {
-                const text = await res.text();
-                console.error("サーバーからの予期しないレスポンス:", text);
-                alert("登録後の処理でエラーが発生しました:\n" + text);
-              }
+
+            
+            if (!res.ok) {
+                throw new Error(await res.text());
+            }
+
+            // 4) JSONを読む → ブラウザ遷移
+            const { auth_url } = await res.json();
+            window.location.href = auth_url;
+
             } catch (err) {
-              console.error("登録エラー:", err);
-              alert("登録中にエラーが発生しました:\n" + err.message);
+            console.error(err);
+            alert("登録中にエラーが発生しました:\n" + err.message);
             }
           });
         });
