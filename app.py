@@ -101,7 +101,7 @@ def register():
         auth_url, _ = flow.authorization_url(
             prompt="consent",
             access_type="offline",
-            include_granted_scopes="true"
+            include_granted_scopes=True
         )
         return redirect(auth_url)
 
