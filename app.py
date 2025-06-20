@@ -115,26 +115,37 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        # Firebase ログイン成功
-        session["user_authenticated"] = True
-        firebase_user = firebase_auth.get_user_by_email(request.form["email"])
-        session["uid"] = firebase_user.uid
-        flow = create_flow()
-        auth_url, _ = flow.authorization_url(
-            prompt="consent",
-            access_type="offline",
-            include_granted_scopes="true"
+    if request.method == "GET":
+        # register と同様に firebaseConfig を渡す
+        return render_template("login.html",
+            FIREBASE_API_KEY     = os.getenv("FIREBASE_API_KEY"),
+            FIREBASE_AUTH_DOMAIN = os.getenv("FIREBASE_AUTH_DOMAIN"),
+            FIREBASE_PROJECT_ID  = os.getenv("FIREBASE_PROJECT_ID"),
+            FIREBASE_APP_ID      = os.getenv("FIREBASE_APP_ID")
         )
-        return redirect(auth_url)
 
-    # GET時はログインフォーム＆登録リンクを表示
-    return render_template("login.html",
-        FIREBASE_API_KEY=os.getenv("FIREBASE_API_KEY"),
-        FIREBASE_AUTH_DOMAIN=os.getenv("FIREBASE_AUTH_DOMAIN"),
-        FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID"),
-        FIREBASE_APP_ID=os.getenv("FIREBASE_APP_ID")
+    # POST(JSON) で来たら ID トークン検証
+    body = request.get_json(silent=True)
+    if not body or "idToken" not in body:
+        abort(400, "idToken がありません")
+
+    try:
+        decoded = firebase_auth.verify_id_token(body["idToken"])
+    except Exception as e:
+        abort(400, f"トークン検証に失敗: {e}")
+
+    session["user_authenticated"] = True
+    session["uid"] = decoded["uid"]
+
+    # ここでは／register と同様に OAuth2 フローへ引き継ぎ
+    flow = create_flow()
+    auth_url, _ = flow.authorization_url(
+        prompt="consent",
+        access_type="offline",
+        include_granted_scopes="true"
     )
+    # JSON で返す
+    return jsonify({ "auth_url": auth_url })
 
 @app.route("/oauth2callback")
 def oauth2callback():
