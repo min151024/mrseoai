@@ -174,3 +174,24 @@ nav a {
 nav a:hover {
     background-color: #34495e;
 }
+
+.site-footer {
+    margin-top: auto;
+    padding: 1rem 0;
+    text-align: center;
+    background-color: #f8f9fa; /* お好みで色を調整 */
+  }
+  
+  .site-footer .footer-links {
+    margin-bottom: 0.5rem;
+  }
+  
+  .site-footer a {
+    color: #555;
+    text-decoration: none;
+    margin: 0 0.5rem;
+  }
+  
+  .site-footer a:hover {
+    text-decoration: underline;
+  }
