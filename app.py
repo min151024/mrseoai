@@ -137,15 +137,7 @@ def login():
     session["user_authenticated"] = True
     session["uid"] = decoded["uid"]
 
-    # ここでは／register と同様に OAuth2 フローへ引き継ぎ
-    flow = create_flow()
-    auth_url, _ = flow.authorization_url(
-        prompt="consent",
-        access_type="offline",
-        include_granted_scopes="true"
-    )
-    # JSON で返す
-    return jsonify({ "auth_url": auth_url })
+    return jsonify({ "status": "ok" })
 
 @app.route("/oauth2callback")
 def oauth2callback():

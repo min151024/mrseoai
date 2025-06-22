@@ -33,50 +33,46 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // Flask から渡された環境変数を埋め込んだ firebaseConfig
-      const firebaseConfig = {
+    const firebaseConfig = {
         apiKey:        "{{ FIREBASE_API_KEY }}",
         authDomain:    "{{ FIREBASE_AUTH_DOMAIN }}",
         projectId:     "{{ FIREBASE_PROJECT_ID }}",
         appId:         "{{ FIREBASE_APP_ID }}"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-      const form = document.getElementById("login-form");
-      form.addEventListener("submit", async e => {
+    const form = document.getElementById("login-form");
+    form.addEventListener("submit", async e => {
         e.preventDefault();
         const email    = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
 
         try {
-          // 1) Firebase でサインイン
-          const userCred = await auth.signInWithEmailAndPassword(email, password);
-          console.log("ログイン成功:", userCred.user.uid);
+        // 1) Firebase でサインイン
+        const userCred = await auth.signInWithEmailAndPassword(email, password);
+        console.log("ログイン成功:", userCred.user.uid);
 
-          // 2) ID トークンを取得
-          const idToken = await userCred.user.getIdToken(/* forceRefresh */ true);
-
-          // 3) サーバーへ POST → OAuth URL を JSON で返してもらう
-          const res = await fetch("{{ url_for('login') }}", {
+        // 2) ID トークンを取得してサーバーへ送信
+        const idToken = await userCred.user.getIdToken(/* forceRefresh */ true);
+        const res = await fetch("{{ url_for('login') }}", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ idToken })
-          });
+        });
 
-          if (!res.ok) {
+        if (!res.ok) {
             throw new Error(await res.text());
-          }
+        }
 
-          // 4) auth_url を受け取って画面遷移
-          const { auth_url } = await res.json();
-          window.location.href = auth_url;
+        // 3) ここを index へ遷移するように変更
+        window.location.href = "{{ url_for('index') }}";
 
         } catch (err) {
-          console.error("ログインエラー:", err);
-          alert("ログインに失敗しました:\n" + err.message);
+        console.error("ログインエラー:", err);
+        alert("ログインに失敗しました:\n" + err.message);
         }
-      });
+    });
     });
   </script>
 </body>
