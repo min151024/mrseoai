@@ -25,6 +25,9 @@
     <form id="register-form" method="POST" action="{{ url_for('register') }}">
         <label for="email">メールアドレス</label>
         <input type="email" id="email" name="email" palceholder="you@example.com" required>
+
+        <p class="note">※対象サイトの Search Console/Analytics のユーザーとしてあらかじめ登録されたGoogleアカウントがありましたらそちらを入力してください。
+        （Search Console/Analyticsの登録がない場合は任意のメールアドレスを入力してください）。</p>
       
         <label for="password">パスワード</label>
         <input type="password" id="password" name="password" placeholder="パスワード" required>
@@ -67,7 +70,6 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ idToken }),
               });
-
             
             if (!res.ok) {
                 throw new Error(await res.text());

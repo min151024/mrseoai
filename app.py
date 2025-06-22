@@ -41,12 +41,20 @@ def is_oauth_authenticated():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        if not is_authenticated() or not is_oauth_authenticated(): #登録していない人は新規登録画面に飛ばされる（登録してから使ってね等のメッセージ必要）
-           return redirect(url_for("login"))
-        
+        # フォームのチェックボックスを取得
+        skip_metrics = request.form.get("skip_metrics") == "on"
+
+        # スキップ指定がない場合のみ認証チェック
+        if not skip_metrics:
+            if not is_authenticated() or not is_oauth_authenticated():
+                # 未認証ユーザーはログインへリダイレクト
+                return redirect(url_for("login"))
+
         input_url = request.form["url"]
-        site_url = to_domain_property(input_url)
-        result = process_seo_improvement(site_url)
+        site_url  = to_domain_property(input_url)
+
+        # フラグを渡して、内部で GA/GSC 取得をスキップできる設計に
+        result = process_seo_improvement(site_url, skip_metrics=skip_metrics)
 
         chart_labels = [ input_url ]
         chart_data = {
@@ -54,7 +62,7 @@ def index():
         "impressions": [ result["impressions"] ],
         "ctr":         [ result["ctr"] ],
         "position":    [ result["position"] ],
-        "conversions": [ result.get("conversions", 0) ]
+        "conversions": [ result.get("conversions") ]
         }
 
         uid = session["uid"]
