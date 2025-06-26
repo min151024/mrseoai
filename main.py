@@ -38,7 +38,6 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
 
     if df_this_week.empty:
         print("❌ 今週のGSCデータが空なのでフォールバックモードで処理します。")
-        # ➡ 辞書で統一して返す
         return {
             "clicks":      0,
             "impressions": 0,
@@ -214,12 +213,24 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
 
     print("✅ HTMLファイルに出力しました（グラフ付き）。")
 
+    total_clicks = merged_df['クリック数'].sum()
+    total_impressions = merged_df['表示回数'].sum()
+    overall_ctr = (total_clicks / total_impressions) * 100 if total_impressions > 0 else 0
+    average_position = merged_df['平均順位'].mean()
+    total_conversions = merged_df['コンバージョン数'].sum()
+
     return {
-    "table_html": html_rows,
-    "chart_labels": merged_df["URL"].tolist(),
-    "chart_data": merged_df["コンバージョン数"].tolist(),
-    "competitors": competitor_data
-}
+        "clicks":      int(total_clicks),
+        "impressions": int(total_impressions),
+        "ctr":         float(overall_ctr),
+        "position":    float(average_position),
+        "conversions": int(total_conversions),
+        "table_html":  html_rows,
+        "chart_labels": merged_df["URL"].tolist(),
+        "chart_data":   merged_df["コンバージョン数"].tolist(),
+        "competitors":  competitor_data,
+        "chatgpt_response": response
+    }
 
 if __name__ == "__main__":
     process_seo_improvement("sc-domain:mrseoai.com")
