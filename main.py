@@ -48,8 +48,8 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
             "table_html":  "<p>今週のGSCデータが空です。サービス紹介文と競合情報を元に改善案を作成します。</p>",
             "chart_labels": [],
             "chart_data":   [],
-            "competitors":  [],        # もし競合だけは入れたい場合はここで取得してもOK
-            "chatgpt_response": ""     # どこかで予め作っておくか空文字で
+            "competitors":  [],       
+            "chatgpt_response": ""  
         }
 
     ga_conversion_data = []

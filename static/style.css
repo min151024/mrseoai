@@ -72,13 +72,13 @@ button[type="submit"]:hover {
     background-color: #005187;
 }
 
-.secondary-button {
+.history-link {
     background-color: #f1f1f1;
     color: #333;
     transition: background-color 0.3s;
 }
 
-.secondary-button:hover {
+.history-link:hover {
     background-color: #ddd;
 }
 
