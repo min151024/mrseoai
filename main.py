@@ -18,17 +18,20 @@ def extract_path_from_url(full_url: str) -> str:
     parsed_url = urlparse(full_url)
     return parsed_url.path or "/"
 
-def process_seo_improvement(site_url):
+def process_seo_improvement(site_url, skip_metrics: bool = False):
     print(f"\U0001F680 SEO改善を開始: {site_url}")
 
-    today = datetime.today().date()
-    yesterday = today - timedelta(days=2)
+    if skip_metrics:
+        df_this_week = pd.DataFrame() 
+    else:
+        today = datetime.today().date()
+        yesterday = today - timedelta(days=2)
+        this_week_start = yesterday - timedelta(days=6)
+        this_week_end   = yesterday
 
-    this_week_start = yesterday - timedelta(days=6)
-    this_week_end = yesterday
+        service = get_search_console_service()
+        df_this_week = fetch_gsc_data(service, site_url, this_week_start, this_week_end)
 
-    service = get_search_console_service()
-    df_this_week = fetch_gsc_data(service, site_url, this_week_start, this_week_end)
 
     print("✅ 今週のdf:")
     print(df_this_week)
