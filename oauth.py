@@ -1,7 +1,7 @@
 import base64
 from pathlib import Path
 import os
-from flask import session, redirect, request, url_for
+from flask import session, url_for
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 

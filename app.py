@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
-from flask import Flask, jsonify, redirect, session, url_for, request, render_template, abort
-from oauth import create_flow, get_credentials_from_session, store_credentials_in_session
+from flask import Flask, flash, jsonify, redirect, session, url_for, request, render_template, abort
+from oauth import create_flow, store_credentials_in_session
 from main import process_seo_improvement
 import firebase_admin
 from firebase_admin import credentials, firestore, auth as firebase_auth
@@ -49,11 +49,13 @@ def index():
             if not is_authenticated() or not is_oauth_authenticated():
                 # 未認証ユーザーはログインへリダイレクト
                 return redirect(url_for("login"))
+            
+            if not skip_metrics and not is_oauth_authenticated():
+                flash("Google Analytics/Search Console と連携してください")
+                return redirect(url_for("authorize"))
 
         input_url = request.form["url"]
         site_url  = to_domain_property(input_url)
-
-        # フラグを渡して、内部で GA/GSC 取得をスキップできる設計に
         result = process_seo_improvement(site_url, skip_metrics=skip_metrics)
 
         chart_labels = [ input_url ]
