@@ -40,11 +40,11 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         print("❌ 今週のGSCデータが空なのでフォールバックモードで処理します。")
         # ➡ 辞書で統一して返す
         return {
-            "clicks":      None,
-            "impressions": None,
-            "ctr":         None,
-            "position":    None,
-            "conversions": None,
+            "clicks":      0,
+            "impressions": 0,
+            "ctr":         0.0,
+            "position":    0,
+            "conversions": 0,
             "table_html":  "<p>今週のGSCデータが空です。サービス紹介文と競合情報を元に改善案を作成します。</p>",
             "chart_labels": [],
             "chart_data":   [],
