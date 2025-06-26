@@ -46,17 +46,23 @@ def index():
 
         # スキップ指定がない場合のみ認証チェック
         if not skip_metrics:
-            if not is_authenticated() or not is_oauth_authenticated():
-                # 未認証ユーザーはログインへリダイレクト
+            if not is_authenticated():
+                flash("まずはログインしてください")
                 return redirect(url_for("login"))
-            
-            if not skip_metrics and not is_oauth_authenticated():
-                flash("Google Analytics/Search Console と連携してください")
-                return redirect(url_for("authorize"))
+
+            user_skip = request.form.get("skip_metrics") == "on"
+            oauth_ready = is_oauth_authenticated()
+            # OAuth未連携でも分析したい場合は強制フォールバック
+            effective_skip = user_skip or not oauth_ready
+
+            # ③ OAuthが済んでいない & ユーザーが明示的に連携希望しないときは注意を出す
+            if not user_skip and not oauth_ready:
+                flash("Google Analytics/Search Console 連携がありません。データ連携なしモードで分析します。")
+
 
         input_url = request.form["url"]
         site_url  = to_domain_property(input_url)
-        result = process_seo_improvement(site_url, skip_metrics=skip_metrics)
+        result = process_seo_improvement(site_url, skip_metrics=effective_skip)
 
         chart_labels = [ input_url ]
         chart_data = {
