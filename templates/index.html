@@ -30,20 +30,20 @@
     
     <form method="post" action="{{ url_for('index') }}">
         <label for="url">分析するURLを入力：</label>
-        <input type="text" name="url" id="url" required>
-      
-        <label>
-          <input type="checkbox" name="skip_metrics">
-          データ連携なしで分析のみ試す
-        </label>
-      
-        <button type="submit">分析開始</button>
-    </form>
-    
-    <div class="history-link">
-        <a href="{{ url_for('result') }}">過去の改善提案を見る</a>
-    </div>
+        <input type="text" name="url" id="url" required placeholder="https://example.com">
 
+        <label>
+            <input type="checkbox" name="skip_metrics" id="skip_metrics">
+            データ連携なしで分析のみ試す
+        </label>
+        
+        <div class="button-group">
+            <button type="submit">分析開始</button>
+    </form>
+
+        <div class="button-group">
+            <a href="{{ url_for('result') }}" class="secondary-button">過去の改善提案を見る</a>
+        </div>
 
     {% if result %}
     <div class="result">
