@@ -37,8 +37,20 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     print(df_this_week)
 
     if df_this_week.empty:
-        print("❌ 今週のGSCデータが空なので改善対象が選べません。")
-        return "<p>今週のGSCデータが空です。</p>"
+        print("❌ 今週のGSCデータが空なのでフォールバックモードで処理します。")
+        # ➡ 辞書で統一して返す
+        return {
+            "clicks":      None,
+            "impressions": None,
+            "ctr":         None,
+            "position":    None,
+            "conversions": None,
+            "table_html":  "<p>今週のGSCデータが空です。サービス紹介文と競合情報を元に改善案を作成します。</p>",
+            "chart_labels": [],
+            "chart_data":   [],
+            "competitors":  [],        # もし競合だけは入れたい場合はここで取得してもOK
+            "chatgpt_response": ""     # どこかで予め作っておくか空文字で
+        }
 
     ga_conversion_data = []
     top_urls = []
