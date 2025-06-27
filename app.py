@@ -43,15 +43,19 @@ def index():
     if request.method == "POST":
         # フォームのチェックボックスを取得
         skip_metrics = request.form.get("skip_metrics") == "on"
+        effective_skip  = skip_metrics
 
         # スキップ指定がない場合のみ認証チェック
         if not skip_metrics:
             if not is_authenticated():
                 flash("まずはログインしてください")
                 return redirect(url_for("login"))
+            oauth_ready = is_oauth_authenticated()
+            if not oauth_ready:
+                flash("GA/GSC連携がありません。スキップモードで分析します。")
+                effective_skip = True
 
             user_skip = request.form.get("skip_metrics") == "on"
-            oauth_ready = is_oauth_authenticated()
             # OAuth未連携でも分析したい場合は強制フォールバック
             effective_skip = user_skip or not oauth_ready
 
@@ -63,15 +67,6 @@ def index():
         input_url = request.form["url"]
         site_url  = to_domain_property(input_url)
         result = process_seo_improvement(site_url, skip_metrics=effective_skip)
-
-        chart_labels = [ input_url ]
-        chart_data = {
-        "clicks":      [ result["clicks"] ],
-        "impressions": [ result["impressions"] ],
-        "ctr":         [ result["ctr"] ],
-        "position":    [ result["position"] ],
-        "conversions": [ result.get("conversions") ]
-        }
 
         uid = session["uid"]
         doc = {

@@ -81,7 +81,13 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
 
         # —– チャート用データ & テーブルHTML —–
         chart_labels = merged_df["URL"].tolist()
-        chart_data   = merged_df["クリック数"].tolist()
+        chart_data = {
+            "clicks":      merged_df["クリック数"].tolist(),
+            "impressions": merged_df["表示回数"].tolist(),
+            "ctr":         merged_df["CTR（%）"].tolist(),
+            "position":    merged_df["平均順位"].tolist(),
+            "conversions": merged_df["コンバージョン数"].tolist()
+        }
         table_html   = merged_df.to_html(classes="table table-sm", index=False)
 
     # 3. ターゲットURL選定（merged_df が空ならサイトTOP）
@@ -105,12 +111,14 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     except:
         competitors_info = []
 
-    competitor_data = [
-        {"URL": u,
-         "タイトル": info.get("title",""),
-         "メタディスクリプション": info.get("description","")}
-        for u, info in zip(top_urls, competitors_info)
-    ]
+    competitor_data = []
+    for idx, u in enumerate(top_urls, start=1):
+        info = get_meta_info_from_url(u)
+        competitor_data.append({
+            "position": idx,
+            "title":    info.get("title",""),
+            "url":      url
+        })
 
 
     try:
@@ -135,91 +143,6 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     for _, row in merged_df.iterrows():
        html_rows += f"<tr><td>{row['URL']}</td><td>{row['クリック数']}</td><td>{row['表示回数']}</td><td>{row['CTR（%）']}</td><td>{row['平均順位']}</td><td>{row['コンバージョン数']}</td></tr>"
 
-    result_html = f"""
-        <!DOCTYPE html>
-        <html lang="ja">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>SEO データ可視化</title>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-            <style>
-                table {{ border-collapse: collapse; width: 100%; }}
-                th, td {{ border: 1px solid #ccc; padding: 8px; text-align: center; }}
-            </style>
-        </head>
-        <body>
-            <h2>SEO データ可視化</h2>
-            <table>
-                <thead>
-                    <tr><th>URL</th><th>クリック数</th><th>表示回数</th><th>CTR（%）</th><th>平均順位</th><th>コンバージョン数</th></tr>
-                </thead>
-                <tbody>
-                    {html_rows}
-                </tbody>
-            </table>
-
-            <canvas id="metricsChart" width="800" height="300"></canvas>
-            <script>
-                const ctx = document.getElementById('metricsChart').getContext('2d');
-                const chart = new Chart(ctx, {{
-                    type: 'bar',
-                    data: {{
-                        labels: {merged_df['URL'].tolist()},
-                        datasets: [
-                            {{
-                                label: 'クリック数',
-                                data: {merged_df['クリック数'].tolist()},
-                                backgroundColor: 'rgba(54, 162, 235, 0.6)'
-                            }},
-                            {{
-                                label: '表示回数',
-                                data: {merged_df['表示回数'].tolist()},
-                                backgroundColor: 'rgba(255, 206, 86, 0.6)'
-                            }},
-                            {{
-                                label: 'CTR（%）',
-                                data: {merged_df['CTR（%）'].tolist()},
-                                backgroundColor: 'rgba(75, 192, 192, 0.6)'
-                            }},
-                            {{
-                                label: '平均順位',
-                                data: {merged_df['平均順位'].tolist()},
-                                backgroundColor: 'rgba(153, 102, 255, 0.6)'
-                            }},
-                            {{
-                                label: 'コンバージョン数',
-                                data: {merged_df['コンバージョン数'].tolist()},
-                                backgroundColor: 'rgba(255, 99, 132, 0.6)'
-                            }}
-                        ]
-                    }},
-                    options: {{
-                        responsive: true,
-                        plugins: {{
-                            legend: {{ position: 'top' }},
-                            title: {{ display: true, text: '各ページのSEO指標比較' }}
-                        }},
-                        scales: {{
-                            y: {{ beginAtZero: true }}
-                        }}
-                    }}
-                }});
-            </script>
-
-            <h3>ChatGPTによる改善案</h3>
-            <div class="chatgpt-response">
-                <pre>{response}</pre>
-            </div>
-        </body>
-        </html>
-    """
-
-    with open("templates/result.html", "w", encoding="utf-8") as f:
-        f.write(result_html)
-
-    print("✅ HTMLファイルに出力しました（グラフ付き）。")
-
     total_clicks = merged_df['クリック数'].sum()
     total_impressions = merged_df['表示回数'].sum()
     overall_ctr = (total_clicks / total_impressions) * 100 if total_impressions > 0 else 0
@@ -233,7 +156,13 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     conversions = int(total_conversions)
     table_html   = html_rows
     chart_labels = merged_df["URL"].tolist()
-    chart_data   = merged_df["クリック数"].tolist()
+    data = {
+        "clicks":      merged_df["クリック数"].tolist(),
+        "impressions": merged_df["表示回数"].tolist(),
+        "ctr":         merged_df["CTR（%）"].tolist(),
+        "position":    merged_df["平均順位"].tolist(),
+        "conversions": merged_df["コンバージョン数"].tolist()
+    }
 
     return {
         "clicks":           clicks,
@@ -243,7 +172,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         "conversions":      conversions,
         "table_html":       table_html,
         "chart_labels":     chart_labels,
-        "chart_data":       chart_data,
+        "chart_data":       data,
         "competitors":      competitor_data,
         "chatgpt_response": response or ""
     }

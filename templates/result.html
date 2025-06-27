@@ -25,10 +25,9 @@
 <h3>SEO 指標グラフ</h3>
 <canvas id="metricsChart" width="800" height="300"></canvas>
 <script>
-// Flask から渡された配列を JS に展開
+{{ table_html | safe }}
 const labels = {{ chart_labels | tojson }};
 const data = {{ chart_data | tojson }};
-
 const ctx = document.getElementById('metricsChart').getContext('2d');
 new Chart(ctx, {
     type: 'bar',
