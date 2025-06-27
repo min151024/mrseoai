@@ -220,17 +220,23 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     total_conversions = merged_df['コンバージョン数'].sum()
 
     return {
-        "clicks":      int(total_clicks),
-        "impressions": int(total_impressions),
-        "ctr":         float(overall_ctr),
-        "position":    float(average_position),
-        "conversions": int(total_conversions),
-        "table_html":  html_rows,
-        "chart_labels": merged_df["URL"].tolist(),
-        "chart_data":   merged_df["コンバージョン数"].tolist(),
-        "competitors":  competitor_data,
-        "chatgpt_response": response
-    }
+    "clicks":      int(total_clicks),
+    "impressions": int(total_impressions),
+    "ctr":         float(overall_ctr),
+    "position":    float(average_position),
+    "conversions": int(total_conversions),
+    "table_html":  html_rows,
+    "chart_labels": merged_df["URL"].tolist(),
+    "chart_data": {
+        "clicks":      merged_df["クリック数"].tolist(),
+        "impressions": merged_df["表示回数"].tolist(),
+        "ctr":         merged_df["CTR（%）"].tolist(),
+        "position":    merged_df["平均順位"].tolist(),
+        "conversions": merged_df["コンバージョン数"].tolist()
+    },
+    "competitors":  competitor_data,
+    "chatgpt_response": response or ""
+}
 
 if __name__ == "__main__":
     process_seo_improvement("sc-domain:mrseoai.com")
