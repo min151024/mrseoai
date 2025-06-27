@@ -36,74 +36,81 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     print("✅ 今週のdf:")
     print(df_this_week)
 
+    clicks       = 0
+    impressions  = 0
+    ctr          = 0.0
+    position     = 0
+    conversions  = 0
+    table_html   = ""
+    chart_labels = []
+    chart_data   = []
+    merged_df    = pd.DataFrame() 
+
     if df_this_week.empty:
         print("❌ 今週のGSCデータが空なのでフォールバックモードで処理します。")
-        return {
-            "clicks":      0,
-            "impressions": 0,
-            "ctr":         0.0,
-            "position":    0,
-            "conversions": 0,
-            "table_html":  "<p>今週のGSCデータが空です。サービス紹介文と競合情報を元に改善案を作成します。</p>",
-            "chart_labels": [],
-            "chart_data":   [],
-            "competitors":  [],       
-            "chatgpt_response": ""  
-        }
+        table_html = "<p>今週のGSC/GAデータが空です。サービス紹介文と競合情報を元に改善案を作成します。</p>"
 
-    ga_conversion_data = []
-    top_urls = []
-    competitors_info = []
-
-    for url in df_this_week["URL"].unique():
-        page_path = urlparse(url).path or "/"
-        ga_df = fetch_ga_conversion_for_url(
-            start_date=this_week_start.isoformat(),
-            end_date=this_week_end.isoformat(),
-            full_url=page_path
-        )
-        if not ga_df.empty:
-            ga_conversion_data.append(ga_df.iloc[0])
-
-    if ga_conversion_data:
-        ga_df_combined = pd.DataFrame(ga_conversion_data)
     else:
-        ga_df_combined = pd.DataFrame(columns=["URL", "コンバージョン数"])
+        ga_conversion_data = []
+        for url in df_this_week["URL"].unique():
+            page_path = urlparse(url).path or "/"
+            ga_df = fetch_ga_conversion_for_url(
+                start_date=this_week_start.isoformat(),
+                end_date=this_week_end.isoformat(),
+                full_url=page_path
+            )
+            if not ga_df.empty:
+                ga_conversion_data.append(ga_df.iloc[0])
+        if ga_conversion_data:
+            ga_df_combined = pd.DataFrame(ga_conversion_data)
+        else:
+            ga_df_combined = pd.DataFrame(columns=["URL", "コンバージョン数"])
 
-    merged_df = pd.merge(df_this_week, ga_df_combined, on="URL", how="left")
-    merged_df["コンバージョン数"] = merged_df["コンバージョン数"].fillna(0).astype(int)
+        merged_df = pd.merge(df_this_week, ga_df_combined, on="URL", how="left")
+        merged_df["コンバージョン数"] = merged_df["コンバージョン数"].fillna(0).astype(int)
 
-    print("🔎 merged_df の中身:")
-    print(merged_df)
+        print("🔎 merged_df の中身:")
+        print(merged_df)
 
-    worst_page = merged_df.sort_values(by='平均順位', ascending=False).iloc[0]
-    target_url = worst_page['URL']
-    print(f"🎯 今週の中で最下位のページを改善対象に選定: {target_url}")
+        # —– メトリクス集計 —–
+        clicks      = int(merged_df['クリック数'].sum())
+        impressions = int(merged_df['表示回数'].sum())
+        ctr         = float(merged_df['CTR（%）'].mean())
+        position    = float(merged_df['平均順位'].mean())
+        conversions = int(merged_df['コンバージョン数'].sum())
 
+        # —– チャート用データ & テーブルHTML —–
+        chart_labels = merged_df["URL"].tolist()
+        chart_data   = merged_df["クリック数"].tolist()
+        table_html   = merged_df.to_html(classes="table table-sm", index=False)
+
+    # 3. ターゲットURL選定（merged_df が空ならサイトTOP）
+    if not merged_df.empty:
+        worst_page = merged_df.sort_values(by='平均順位', ascending=False).iloc[0]
+        target_url = worst_page['URL']
+    else:
+        target_url = site_url.rstrip("/") + "/"
+    print(f"🎯 改善対象ページ: {target_url}")
+
+    # 4. 競合情報取得 & ChatGPT 改善案呼び出し（共通）
     try:
         meta_info = get_meta_info_from_url(target_url)
-        keyword = meta_info.get("title") or meta_info.get("description") or "SEO"
-        print(f"🔍 抽出されたキーワード: {keyword}")
-    except Exception as e:
-        print(f"⚠️ メタ情報の取得に失敗: {e}")
+        keyword   = meta_info.get("title") or meta_info.get("description") or "SEO"
+    except:
         keyword = "SEO"
 
     try:
-        top_urls = get_top_competitor_urls(keyword)
-        competitors_info = [get_meta_info_from_url(url) for url in top_urls if url]
-    except Exception as e:
-        print(f"⚠️ 競合ページの取得に失敗: {e}")
-        top_urls = []
+        top_urls         = get_top_competitor_urls(keyword)
+        competitors_info = [get_meta_info_from_url(u) for u in top_urls if u]
+    except:
         competitors_info = []
 
-    competitor_data = []
-    for url in top_urls:
-        info = get_meta_info_from_url(url)
-        competitor_data.append({
-            "URL": url,
-            "タイトル": info.get("title", ""),
-            "メタディスクリプション": info.get("description", "")
-        })
+    competitor_data = [
+        {"URL": u,
+         "タイトル": info.get("title",""),
+         "メタディスクリプション": info.get("description","")}
+        for u, info in zip(top_urls, competitors_info)
+    ]
 
 
     try:
@@ -219,24 +226,27 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     average_position = merged_df['平均順位'].mean()
     total_conversions = merged_df['コンバージョン数'].sum()
 
+    clicks      = int(total_clicks)
+    impressions = int(total_impressions)
+    ctr         = float(overall_ctr)
+    position    = float(average_position)
+    conversions = int(total_conversions)
+    table_html   = html_rows
+    chart_labels = merged_df["URL"].tolist()
+    chart_data   = merged_df["クリック数"].tolist()
+
     return {
-    "clicks":      int(total_clicks),
-    "impressions": int(total_impressions),
-    "ctr":         float(overall_ctr),
-    "position":    float(average_position),
-    "conversions": int(total_conversions),
-    "table_html":  html_rows,
-    "chart_labels": merged_df["URL"].tolist(),
-    "chart_data": {
-        "clicks":      merged_df["クリック数"].tolist(),
-        "impressions": merged_df["表示回数"].tolist(),
-        "ctr":         merged_df["CTR（%）"].tolist(),
-        "position":    merged_df["平均順位"].tolist(),
-        "conversions": merged_df["コンバージョン数"].tolist()
-    },
-    "competitors":  competitor_data,
-    "chatgpt_response": response or ""
-}
+        "clicks":           clicks,
+        "impressions":      impressions,
+        "ctr":              ctr,
+        "position":         position,
+        "conversions":      conversions,
+        "table_html":       table_html,
+        "chart_labels":     chart_labels,
+        "chart_data":       chart_data,
+        "competitors":      competitor_data,
+        "chatgpt_response": response or ""
+    }
 
 if __name__ == "__main__":
     process_seo_improvement("sc-domain:mrseoai.com")
