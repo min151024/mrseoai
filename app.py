@@ -77,6 +77,21 @@ def index():
         }
         db.collection("improvements").add(doc)
 
+        history_ref = db.collection("improvements") \
+                        .where("uid", "==", uid) \
+                        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+        history_docs = history_ref.stream()
+
+        history = []
+        for doc in history_docs:
+            d = doc.to_dict()
+            history.append({
+                "id":               doc.id,  # ← ここを追加
+                "timestamp":        d["timestamp"].strftime("%Y-%m-%d %H:%M:%S"),
+                "input_url":        d["input_url"],
+                "chatgpt_response": d["result"]["chatgpt_response"]
+            })
+
         return render_template(
             "result.html",
             site_url=input_url,
@@ -84,7 +99,8 @@ def index():
             chart_labels=result["chart_labels"],
             chart_data=result["chart_data"],
             competitors=result["competitors"],
-            chatgpt_response=result.get("chatgpt_response", "")
+            chatgpt_response=result.get("chatgpt_response", ""),
+            history=history
         )
 
     # GET のときは誰でも index.html を表示
@@ -246,6 +262,18 @@ def result():
         competitors=competitors,
         history=history
     )
+
+@app.route("/delete_improvement", methods=["POST"])
+def delete_improvement():
+    doc_id = request.form.get("doc_id")
+    try:
+        db.collection("improvements").document(doc_id).delete()
+        flash("改善提案を削除しました", "success")
+    except Exception as e:
+        flash(f"削除に失敗しました: {e}", "error")
+    # 元の一覧に戻る
+    return redirect(request.referrer or url_for("index"))
+
 
 @app.route("/privacy")
 def privacy():
