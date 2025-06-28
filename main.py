@@ -11,6 +11,9 @@ from sheet_utils import (
     update_sheet,
     write_competitor_data_to_sheet
 )
+from google.cloud import firestore
+db = firestore.Client()
+
 
 SPREADSHEET_ID = '1Fpdb-3j89j7OkPmJXbdmSmFBaA6yj2ZB0AUBNvF6BQ4'
 
@@ -176,6 +179,24 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         "competitors":      competitor_data,
         "chatgpt_response": response or ""
     }
+
+def get_history_for_user(uid):
+    docs = (
+        db.collection("improvements")
+          .where("uid", "==", uid)
+          .order_by("timestamp", direction=firestore.Query.DESCENDING)
+          .stream()
+    )
+    history = []
+    for doc in docs:
+        d = doc.to_dict()
+        history.append({
+            "id":               doc.id,
+            "timestamp":        d["timestamp"].strftime("%Y-%m-%d %H:%M:%S"),
+            "input_url":        d["input_url"],
+            "chatgpt_response": d["result"]["chatgpt_response"]
+        })
+    return history
 
 if __name__ == "__main__":
     process_seo_improvement("sc-domain:mrseoai.com")

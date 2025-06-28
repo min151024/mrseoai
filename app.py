@@ -1,7 +1,7 @@
 from urllib.parse import urlparse
 from flask import Flask, flash, jsonify, redirect, session, url_for, request, render_template, abort
 from oauth import create_flow, store_credentials_in_session
-from main import process_seo_improvement
+from main import process_seo_improvement, get_history_for_user
 import firebase_admin
 from firebase_admin import credentials, firestore, auth as firebase_auth
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -40,10 +40,13 @@ def is_oauth_authenticated():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    uid = session.get("uid")
+    history = get_history_for_user(uid) if uid else []
+
     if request.method == "POST":
-        # フォームのチェックボックスを取得
         skip_metrics = request.form.get("skip_metrics") == "on"
         effective_skip  = skip_metrics
+        history = get_history_for_user(uid)
 
         # スキップ指定がない場合のみ認証チェック
         if not skip_metrics:
@@ -68,29 +71,17 @@ def index():
         site_url  = to_domain_property(input_url)
         result = process_seo_improvement(site_url, skip_metrics=effective_skip)
 
-        uid = session["uid"]
-        doc = {
-            "uid": uid,
-            "input_url": input_url,
-            "result": result,               
-            "timestamp": datetime.utcnow()
-        }
-        db.collection("improvements").add(doc)
+        if uid:
+            doc = {
+                "uid":            uid,
+                "input_url":      input_url,
+                "result":         result,
+                "timestamp":      datetime.utcnow()
+            }
+            db.collection("improvements").add(doc)
+            # 追加後、再取得して最新順にする
+            history = get_history_for_user(uid)
 
-        history_ref = db.collection("improvements") \
-                        .where("uid", "==", uid) \
-                        .order_by("timestamp", direction=firestore.Query.DESCENDING)
-        history_docs = history_ref.stream()
-
-        history = []
-        for doc in history_docs:
-            d = doc.to_dict()
-            history.append({
-                "id":               doc.id,  # ← ここを追加
-                "timestamp":        d["timestamp"].strftime("%Y-%m-%d %H:%M:%S"),
-                "input_url":        d["input_url"],
-                "chatgpt_response": d["result"]["chatgpt_response"]
-            })
 
         return render_template(
             "result.html",
@@ -104,7 +95,7 @@ def index():
         )
 
     # GET のときは誰でも index.html を表示
-    return render_template("index.html")
+    return render_template("index.html", history=history)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
