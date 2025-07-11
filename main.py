@@ -120,7 +120,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         competitor_data.append({
             "position": idx,
             "title":    info.get("title",""),
-            "url":      url
+            "url":      u
         })
 
 
