@@ -9,7 +9,6 @@ from sheet_utils import (
     get_spreadsheet,
     get_or_create_worksheet,
     update_sheet,
-    write_competitor_data_to_sheet
 )
 from google.cloud import firestore
 db = firestore.Client()
@@ -106,7 +105,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         meta_info = get_meta_info_from_url(target_url)
         keyword   = meta_info.get("title") or meta_info.get("description") or "SEO"
     except:
-        keyword = "SEO"
+        keyword = "SEO"  #これどういうこと
 
     try:
         top_urls         = get_top_competitor_urls(keyword)
@@ -118,8 +117,8 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     for idx, u in enumerate(top_urls, start=1):
         info = get_meta_info_from_url(u)
         competitor_data.append({
-            "position": idx,
-            "title":    info.get("title",""),
+            "メタディスクリプション": idx,
+            "タイトル":    info.get("title",""),
             "URL":      u
         })
 
@@ -136,10 +135,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     spreadsheet = get_spreadsheet(SPREADSHEET_ID)
     sheet_result = get_or_create_worksheet(spreadsheet, "SEOデータ")
 
-    print("📤 スプレッドシートへの書き込みを開始します")
     update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
-    write_competitor_data_to_sheet(spreadsheet, competitor_data)
-    print("✅ スプレッドシートに書き込みました。")
         
 
     html_rows = ""
