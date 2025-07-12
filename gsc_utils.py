@@ -48,7 +48,14 @@ def fetch_gsc_data(service, site_url, start_date, end_date):
                 round(row.get('position', 0), 2)
             ])
 
-        df = pd.DataFrame(data, columns=['検索キーワード', 'URL', 'クリック数', '表示回数', 'CTR（%）', '平均順位'])
+        df = pd.DataFrame(data, columns=[
+            'search_query',  # 検索キーワード
+            'URL',
+            'clicks',        # クリック数
+            'impressions',   # 表示回数
+            'ctr',           # CTR（%）ではなく小数で返すので、main.py で % に変換
+            'position'       # 平均順位
+        ])
         return df
 
 
