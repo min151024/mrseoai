@@ -142,11 +142,11 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     for _, row in merged_df.iterrows():
        html_rows += f"<tr><td>{row['URL']}</td><td>{row['クリック数']}</td><td>{row['表示回数']}</td><td>{row['CTR（%）']}</td><td>{row['平均順位']}</td><td>{row['コンバージョン数']}</td></tr>"
 
-    total_clicks = merged_df['clicks'].sum()
-    total_impressions = merged_df['impressions'].sum()
+    total_clicks = merged_df['クリック数'].sum()
+    total_impressions = merged_df['表示回数'].sum()
     overall_ctr = (total_clicks / total_impressions) * 100 if total_impressions > 0 else 0
-    average_position = merged_df['position'].mean()
-    total_conversions = merged_df['conversions'].sum()
+    average_position = merged_df['平均順位'].mean()
+    total_conversions = merged_df['コンバージョン数'].sum()
 
     clicks      = int(total_clicks)
     impressions = int(total_impressions)
