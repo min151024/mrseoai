@@ -46,11 +46,10 @@ def fetch_ga_conversion_for_url(start_date: str, end_date: str, full_url: str):
     for row in response.rows:
         data.append({
             "URL": row.dimension_values[0].value,
-            "conversions": int(row.metric_values[0].value)
+            "コンバージョン数": int(row.metric_values[0].value)
         })
 
-    df = pd.DataFrame(data)
-    return df
+    return pd.DataFrame(data)
 
 
 def get_domain_from_url(site_url: str) -> str:

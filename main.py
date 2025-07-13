@@ -9,9 +9,9 @@ from sheet_utils import (
     get_spreadsheet,
     get_or_create_worksheet,
     update_sheet,
+    write_competitor_data_to_sheet
 )
 from google.cloud import firestore
-import unicodedata
 db = firestore.Client()
 
 
@@ -67,50 +67,35 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         if ga_conversion_data:
             ga_df_combined = pd.DataFrame(ga_conversion_data)
         else:
-            ga_df_combined = pd.DataFrame(columns=["URL", "conversions"])
+            ga_df_combined = pd.DataFrame(columns=["URL", "コンバージョン数"])
 
         merged_df = pd.merge(df_this_week, ga_df_combined, on="URL", how="left")
-        merged_df["conversions"] = merged_df["conversions"].fillna(0).astype(int)
-
-        normalized = [
-            unicodedata.normalize("NFKC", col).strip().lower().replace(" ", "_")
-            for col in merged_df.columns
-        ]
-        merged_df.columns = normalized
-        merged_df.rename(columns={
-            "クリック数":      "clicks",
-            "表示回数":      "impressions",
-            "ctr":           "ctr",        # 既に英語列名だったらそのまま
-            "position":      "position",   # 同上
-            "conversions":   "conversions",
-            "url":           "url",        # "URL"→"url" に正規化されたので念のため
-            "search_query":  "search_query",
-        }, inplace=True)
+        merged_df["コンバージョン数"] = merged_df["コンバージョン数"].fillna(0).astype(int)
 
         print("🔎 merged_df の中身:")
         print(merged_df)
 
         # —– メトリクス集計 —–
-        clicks      = int(merged_df['clicks'].sum())
-        impressions = int(merged_df['impressions'].sum())
-        ctr         = float(merged_df['ctr'].mean())
-        position    = float(merged_df['position'].mean())
-        conversions = int(merged_df['conversions'].sum())
+        clicks      = int(merged_df['クリック数'].sum())
+        impressions = int(merged_df['表示回数'].sum())
+        ctr         = float(merged_df['CTR（%）'].mean())
+        position    = float(merged_df['平均順位'].mean())
+        conversions = int(merged_df['コンバージョン数'].sum())
 
         # —– チャート用データ & テーブルHTML —–
-        chart_labels = merged_df["url"].tolist()
+        chart_labels = merged_df["URL"].tolist()
         chart_data = {
-            "clicks":      merged_df["clicks"].tolist(),
-            "impressions": merged_df["impressions"].tolist(),
-            "ctr":         merged_df["ctr"].tolist(),
-            "position":    merged_df["position"].tolist(),
-            "conversions": merged_df["conversions"].tolist()
+            "clicks":      merged_df["クリック数"].tolist(),
+            "impressions": merged_df["表示回数"].tolist(),
+            "ctr":         merged_df["CTR（%）"].tolist(),
+            "position":    merged_df["平均順位"].tolist(),
+            "conversions": merged_df["コンバージョン数"].tolist()
         }
         table_html   = merged_df.to_html(classes="table table-sm", index=False)
 
     # 3. ターゲットURL選定（merged_df が空ならサイトTOP）
     if not merged_df.empty:
-        worst_page = merged_df.sort_values(by='position', ascending=False).iloc[0]
+        worst_page = merged_df.sort_values(by='平均順位', ascending=False).iloc[0]
         target_url = worst_page['URL']
     else:
         target_url = site_url.rstrip("/") + "/"
@@ -121,7 +106,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         meta_info = get_meta_info_from_url(target_url)
         keyword   = meta_info.get("title") or meta_info.get("description") or "SEO"
     except:
-        keyword = "SEO"  #これどういうこと
+        keyword = "SEO"
 
     try:
         top_urls         = get_top_competitor_urls(keyword)
@@ -133,10 +118,10 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     for idx, u in enumerate(top_urls, start=1):
         info = get_meta_info_from_url(u)
         competitor_data.append({
-            "メタディスクリプション": idx,
-            "タイトル":    info.get("title",""),
-            "URL":      u
-        })
+         "URL":                 u,
+         "タイトル":            info.get("title",""),
+         "メタディスクリプション": info.get("description","")
+     })
 
 
     try:
@@ -151,18 +136,21 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     spreadsheet = get_spreadsheet(SPREADSHEET_ID)
     sheet_result = get_or_create_worksheet(spreadsheet, "SEOデータ")
 
+    print("📤 スプレッドシートへの書き込みを開始します")
     update_sheet(sheet_result, merged_df.columns.tolist(), merged_df.values.tolist())
+    write_competitor_data_to_sheet(spreadsheet, competitor_data)
+    print("✅ スプレッドシートに書き込みました。")
         
 
     html_rows = ""
     for _, row in merged_df.iterrows():
-       html_rows += f"<tr><td>{row['url']}</td><td>{row['clicks']}</td><td>{row['impressions']}</td><td>{row['ctr']}</td><td>{row['position']}</td><td>{row['conversions']}</td></tr>"
+       html_rows += f"<tr><td>{row['URL']}</td><td>{row['クリック数']}</td><td>{row['表示回数']}</td><td>{row['CTR（%）']}</td><td>{row['平均順位']}</td><td>{row['コンバージョン数']}</td></tr>"
 
-    total_clicks = merged_df['clicks'].sum()
-    total_impressions = merged_df['impressions'].sum()
+    total_clicks = merged_df['クリック数'].sum()
+    total_impressions = merged_df['表示回数'].sum()
     overall_ctr = (total_clicks / total_impressions) * 100 if total_impressions > 0 else 0
-    average_position = merged_df['position'].mean()
-    total_conversions = merged_df['conversions'].sum()
+    average_position = merged_df['平均順位'].mean()
+    total_conversions = merged_df['コンバージョン数'].sum()
 
     clicks      = int(total_clicks)
     impressions = int(total_impressions)
@@ -170,13 +158,13 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     position    = float(average_position)
     conversions = int(total_conversions)
     table_html   = html_rows
-    chart_labels = merged_df["url"].tolist()
+    chart_labels = merged_df["URL"].tolist()
     data = {
-        "clicks":      merged_df["clicks"].tolist(),
-        "impressions": merged_df["impressions"].tolist(),
-        "ctr":         merged_df["ctr"].tolist(),
-        "position":    merged_df["position"].tolist(),
-        "conversions": merged_df["conversions"].tolist()
+        "clicks":      merged_df["クリック数"].tolist(),
+        "impressions": merged_df["表示回数"].tolist(),
+        "ctr":         merged_df["CTR（%）"].tolist(),
+        "position":    merged_df["平均順位"].tolist(),
+        "conversions": merged_df["コンバージョン数"].tolist()
     }
 
     return {
