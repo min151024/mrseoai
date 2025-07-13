@@ -11,7 +11,6 @@ from sheet_utils import (
     update_sheet,
 )
 from google.cloud import firestore
-import unicodedata
 db = firestore.Client()
 
 
@@ -72,21 +71,6 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         merged_df = pd.merge(df_this_week, ga_df_combined, on="URL", how="left")
         merged_df["conversions"] = merged_df["conversions"].fillna(0).astype(int)
 
-        normalized = [
-            unicodedata.normalize("NFKC", col).strip().lower().replace(" ", "_")
-            for col in merged_df.columns
-        ]
-        merged_df.columns = normalized
-        merged_df.rename(columns={
-            "クリック数":      "clicks",
-            "表示回数":      "impressions",
-            "ctr":           "ctr",        # 既に英語列名だったらそのまま
-            "position":      "position",   # 同上
-            "conversions":   "conversions",
-            "url":           "url",        # "URL"→"url" に正規化されたので念のため
-            "search_query":  "search_query",
-        }, inplace=True)
-
         print("🔎 merged_df の中身:")
         print(merged_df)
 
@@ -98,7 +82,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         conversions = int(merged_df['conversions'].sum())
 
         # —– チャート用データ & テーブルHTML —–
-        chart_labels = merged_df["url"].tolist()
+        chart_labels = merged_df["URL"].tolist()
         chart_data = {
             "clicks":      merged_df["clicks"].tolist(),
             "impressions": merged_df["impressions"].tolist(),
@@ -156,7 +140,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
 
     html_rows = ""
     for _, row in merged_df.iterrows():
-       html_rows += f"<tr><td>{row['url']}</td><td>{row['clicks']}</td><td>{row['impressions']}</td><td>{row['ctr']}</td><td>{row['position']}</td><td>{row['conversions']}</td></tr>"
+       html_rows += f"<tr><td>{row['URL']}</td><td>{row['clicks']}</td><td>{row['impressions']}</td><td>{row['ctr']}</td><td>{row['position']}</td><td>{row['conversions']}</td></tr>"
 
     total_clicks = merged_df['clicks'].sum()
     total_impressions = merged_df['impressions'].sum()
@@ -170,7 +154,7 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     position    = float(average_position)
     conversions = int(total_conversions)
     table_html   = html_rows
-    chart_labels = merged_df["url"].tolist()
+    chart_labels = merged_df["URL"].tolist()
     data = {
         "clicks":      merged_df["clicks"].tolist(),
         "impressions": merged_df["impressions"].tolist(),
