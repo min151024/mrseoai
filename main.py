@@ -75,12 +75,18 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         print("🔎 merged_df の中身:")
         print(merged_df)
 
-        # —– メトリクス集計 —–
-        clicks      = int(merged_df['クリック数'].sum())
-        impressions = int(merged_df['表示回数'].sum())
-        ctr         = float(merged_df['CTR（%）'].mean())
-        position    = float(merged_df['平均順位'].mean())
-        conversions = int(merged_df['コンバージョン数'].sum())
+        if merged_df.empty:
+            clicks = 0
+            impressions = 0
+            ctr = 0
+            position = 0
+            conversions = 0
+        else:
+            clicks      = int(merged_df['クリック数'].sum())
+            impressions = int(merged_df['表示回数'].sum())
+            ctr         = float(merged_df['CTR（%）'].mean())
+            position    = float(merged_df['平均順位'].mean())
+            conversions = int(merged_df['コンバージョン数'].sum())
 
         # —– チャート用データ & テーブルHTML —–
         chart_labels = merged_df["URL"].tolist()

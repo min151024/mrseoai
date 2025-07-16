@@ -20,7 +20,7 @@ cred = credentials.Certificate("credentials.json")
 firebase_admin.initialize_app(cred)
 db = firestore.Client()
 
-def to_domain_property(url):
+def to_sc_property(url):
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
 
@@ -68,7 +68,7 @@ def index():
 
 
         input_url = request.form["url"]
-        site_url  = to_domain_property(input_url)
+        site_url  = to_sc_property(input_url)
         result = process_seo_improvement(site_url, skip_metrics=effective_skip)
 
         if uid:
@@ -190,7 +190,7 @@ def result():
     # --- 新規分析処理（フォーム送信時のみ） ---
     if request.method == "POST":
         input_url = request.form["url"]
-        site_url  = to_domain_property(input_url)
+        site_url  = to_sc_property(input_url)
         data      = process_seo_improvement(site_url)
 
         # 取得した競合リストを保持
