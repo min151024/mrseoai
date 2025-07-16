@@ -51,7 +51,10 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
 
     if df_this_week.empty:
         print("❌ 今週のGSCデータが空なのでフォールバックモードで処理します。")
-        table_html = "<p>今週のGSC/GAデータが空です。サービス紹介文と競合情報を元に改善案を作成します。</p>"
+        merged_df = pd.DataFrame(columns=[
+        "URL", "クリック数", "表示回数", "CTR（%）", "平均順位", "コンバージョン数"
+        ])
+        table_html = "<p>今週のGSC/GAデータが空です…</p>"
 
     else:
         ga_conversion_data = []
