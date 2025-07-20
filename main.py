@@ -127,9 +127,9 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
     for idx, u in enumerate(top_urls, start=1):
         info = get_meta_info_from_url(u)
         competitor_data.append({
-         "URL":                 u,
-         "タイトル":            info.get("title",""),
-         "メタディスクリプション": info.get("description","")
+            "position": idx,           # 順位
+            "title":    info["title"], # タイトル
+            "url":      info["url"],   # URL
      })
 
 

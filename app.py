@@ -20,15 +20,25 @@ cred = credentials.Certificate("credentials.json")
 firebase_admin.initialize_app(cred)
 db = firestore.Client()
 
-def to_domain_property(url):
+def to_sc_property(url: str) -> str:
+    # 1) スキームがなければ https:// を付与してパースし直し
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
-
     parsed = urlparse(url)
+
+    # 2) hostname が取れないなら不正 URL
     hostname = parsed.hostname
     if hostname is None:
         abort(400, "URLが不正です。https://example.com のように入力してください。")
 
+    # 3) path, query, fragment があれば「URL プレフィックス」と判断
+    has_path = parsed.path.strip("/ ")
+    if has_path or parsed.query or parsed.fragment:
+        # https://example.com/sub/path の形をそのまま返す
+        prefix = f"{parsed.scheme}://{parsed.netloc}{parsed.path.rstrip('/')}"
+        return prefix
+
+    # 4) それ以外は「ドメインプロパティ」として扱う
     domain = hostname.replace("www.", "")
     return f"sc-domain:{domain}"
 
@@ -68,7 +78,7 @@ def index():
 
 
         input_url = request.form["url"]
-        site_url  = to_domain_property(input_url)
+        site_url  = to_sc_property(input_url)
         result = process_seo_improvement(site_url, skip_metrics=effective_skip)
 
         if uid:
@@ -190,7 +200,7 @@ def result():
     # --- 新規分析処理（フォーム送信時のみ） ---
     if request.method == "POST":
         input_url = request.form["url"]
-        site_url  = to_domain_property(input_url)
+        site_url  = to_sc_property(input_url)
         data      = process_seo_improvement(site_url)
 
         # 取得した競合リストを保持
@@ -223,11 +233,11 @@ def result():
         }
 
         # 競合リストをテンプレート向けにフォーマット
-        for comp in raw_competitors:
+        for idx, comp in enumerate(raw_competitors, start=1):
             competitors.append({
-                "position": comp.get("position") or comp.get("rank"),
-                "title":    comp.get("title")    or comp.get("page_title"),
-                "url":      comp.get("url")      or comp.get("link")
+                "position": idx,                   # 順位を自分でセット
+                "title":    comp.get("タイトル", ""),
+                "url":      comp.get("URL", "")
             })
 
     # --- 履歴取得（常に実行） ---
@@ -240,6 +250,7 @@ def result():
     for d in docs:
         rec = d.to_dict()
         history.append({
+            "id":               d.id,
             "input_url":        rec.get("input_url"),
             "timestamp":        rec.get("timestamp").strftime("%Y-%m-%d %H:%M"),
             "chatgpt_response": rec.get("result", {}).get("chatgpt_response", "")
@@ -254,16 +265,13 @@ def result():
         history=history
     )
 
-@app.route("/delete_improvement", methods=["POST"])
-def delete_improvement():
-    doc_id = request.form.get("doc_id")
-    try:
-        db.collection("improvements").document(doc_id).delete()
-        flash("改善提案を削除しました", "success")
-    except Exception as e:
-        flash(f"削除に失敗しました: {e}", "error")
-    # 元の一覧に戻る
-    return redirect(request.referrer or url_for("index"))
+@app.route("/delete/<id>", methods=["POST"])
+def delete_improvement(id):
+    if not session.get("user_authenticated"):
+        return redirect(url_for("login"))
+    # Firestore から削除
+    db.collection("improvements").document(id).delete()
+    return redirect(url_for("result"))
 
 
 @app.route("/privacy")

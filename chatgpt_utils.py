@@ -68,7 +68,7 @@ def build_prompt(target_url, competitors_info, ga_data):
 【対象ページのGoogle Analyticsデータ】
 {ga_text}
 
-上記を参考にして、対象ページのタイトルとメタディスクリプションの改善案を提案してください。
+上記を参考にして、対象ページのタイトルとメタディスクリプションの改善案を日本語で提案してください。
 """
     return prompt
 
