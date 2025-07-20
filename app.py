@@ -265,13 +265,13 @@ def result():
         history=history
     )
 
-@app.route("/delete/<id>", methods=["POST"])
-def delete_improvement(id):
+@app.route("/delete_improvement", methods=["POST"])
+def delete_improvement():
     if not session.get("user_authenticated"):
         return redirect(url_for("login"))
-    # Firestore から削除
-    db.collection("improvements").document(id).delete()
-    return redirect(url_for("result"))
+    doc_id = request.form["doc_id"]
+    db.collection("improvements").document(doc_id).delete()
+    return redirect(request.referrer or url_for("result"))
 
 
 @app.route("/privacy")
