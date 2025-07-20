@@ -108,12 +108,10 @@ new Chart(ctx, {
                 </td>
                 <td class="border px-2 py-1">{{ item.chatgpt_response }}</td>
                 <td class="border px-2 py-1">
-                  <form method="POST" action="{{ url_for('delete_improvement') }}" class="inline;">
+                  <form method="POST" action="{{ url_for('delete_improvement') }}">
                     <input type="hidden" name="doc_id" value="{{ item.id }}">
-                    <button type="submit" class="px-2 py-1 bg-red-500 text-white rounded text-sm">
-                      削除
-                    </button>
-                  </form>
+                    <button type="submit">削除</button>
+                  </form>                  
                 </td>
               </tr>
               {% endfor %}
