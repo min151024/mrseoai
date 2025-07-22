@@ -6,6 +6,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore, auth as firebase_auth
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
+import traceback
 from datetime import datetime
 from google.cloud import firestore
 #os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
@@ -183,87 +184,93 @@ def logout():
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
+    try:
     # 認証チェック
-    if not session.get("user_authenticated") or not session.get("uid"):
-        return redirect(url_for("login"))
+        if not session.get("user_authenticated") or not session.get("uid"):
+            return redirect(url_for("login"))
 
-    uid = session["uid"]
+        uid = session["uid"]
 
-    # POST/GET 共通で使う変数を先に初期化
-    new_item = None
-    chart_labels = []
-    chart_data   = {}
-    raw_competitors = []
-    competitors     = []
-    history         = []
+        # POST/GET 共通で使う変数を先に初期化
+        new_item = None
+        chart_labels = []
+        chart_data   = {}
+        raw_competitors = []
+        competitors     = []
+        history         = []
 
-    # --- 新規分析処理（フォーム送信時のみ） ---
-    if request.method == "POST":
-        input_url = request.form["url"]
-        site_url  = to_sc_property(input_url)
-        data      = process_seo_improvement(site_url)
+        # --- 新規分析処理（フォーム送信時のみ） ---
+        if request.method == "POST":
+            input_url = request.form["url"]
+            site_url  = to_sc_property(input_url)
+            data      = process_seo_improvement(site_url)
 
-        # 取得した競合リストを保持
-        raw_competitors = data.get("competitors", [])
+            # 取得した競合リストを保持
+            raw_competitors = data.get("competitors", [])
 
-        # Firestore に永続化
-        timestamp = datetime.utcnow()
-        db.collection("improvements").add({
-            "uid": uid,
-            "input_url": input_url,
-            "result": data,
-            "timestamp": timestamp
-        })
-
-        # 新規アイテム用データ
-        new_item = {
-            "input_url": input_url,
-            "result":    data,
-            "timestamp": timestamp
-        }
-
-        # グラフ用ラベル＆データ
-        chart_labels = [input_url]
-        chart_data = {
-            "clicks":      [data.get("clicks", 0)],
-            "impressions": [data.get("impressions", 0)],
-            "ctr":         [data.get("ctr", 0)],
-            "position":    [data.get("position", 0)],
-            "conversions": [data.get("conversions", 0)]
-        }
-
-        # 競合リストをテンプレート向けにフォーマット
-        for idx, comp in enumerate(raw_competitors, start=1):
-            competitors.append({
-                "position": idx,                   # 順位を自分でセット
-                "title":    comp.get("タイトル", ""),
-                "url":      comp.get("URL", "")
+            # Firestore に永続化
+            timestamp = datetime.utcnow()
+            db.collection("improvements").add({
+                "uid": uid,
+                "input_url": input_url,
+                "result": data,
+                "timestamp": timestamp
             })
 
-    # --- 履歴取得（常に実行） ---
-    docs = (
-        db.collection("improvements")
-          .where("uid", "==", uid)
-          .order_by("timestamp", direction=firestore.Query.DESCENDING)
-          .stream()
-    )
-    for d in docs:
-        rec = d.to_dict()
-        history.append({
-            "id":               d.id,
-            "input_url":        rec.get("input_url"),
-            "timestamp":        rec.get("timestamp").strftime("%Y-%m-%d %H:%M"),
-            "chatgpt_response": rec.get("result", {}).get("chatgpt_response", "")
-        })
+            # 新規アイテム用データ
+            new_item = {
+                "input_url": input_url,
+                "result":    data,
+                "timestamp": timestamp
+            }
 
-    return render_template(
-        "result.html",
-        new_item=new_item,
-        chart_labels=chart_labels,
-        chart_data=chart_data,
-        competitors=competitors,
-        history=history
-    )
+            # グラフ用ラベル＆データ
+            chart_labels = [input_url]
+            chart_data = {
+                "clicks":      [data.get("clicks", 0)],
+                "impressions": [data.get("impressions", 0)],
+                "ctr":         [data.get("ctr", 0)],
+                "position":    [data.get("position", 0)],
+                "conversions": [data.get("conversions", 0)]
+            }
+
+            # 競合リストをテンプレート向けにフォーマット
+            for idx, comp in enumerate(raw_competitors, start=1):
+                competitors.append({
+                    "position": idx,                   # 順位を自分でセット
+                    "title":    comp.get("タイトル", ""),
+                    "url":      comp.get("URL", "")
+                })
+
+        # --- 履歴取得（常に実行） ---
+        docs = (
+            db.collection("improvements")
+            .where("uid", "==", uid)
+            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .stream()
+        )
+        for d in docs:
+            rec = d.to_dict()
+            history.append({
+                "id":               d.id,
+                "input_url":        rec.get("input_url"),
+                "timestamp":        rec.get("timestamp").strftime("%Y-%m-%d %H:%M"),
+                "chatgpt_response": rec.get("result", {}).get("chatgpt_response", "")
+            })
+
+        return render_template(
+            "result.html",
+            new_item=new_item,
+            chart_labels=chart_labels,
+            chart_data=chart_data,
+            competitors=competitors,
+            history=history
+        )
+    except Exception as e:
+        # ここが必ず Gunicorn のログに残るはず
+        app.logger.error("Unhandled exception in /result:\n" + traceback.format_exc())
+        # ユーザー向けには簡単なエラーメッセージ
+        return "内部サーバーエラーが発生しました。管理者にお問い合わせください。", 500
 
 @app.route("/delete_improvement", methods=["POST"])
 def delete_improvement():
