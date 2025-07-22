@@ -124,13 +124,13 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         competitors_info = []
 
     competitor_data = []
-    for idx, u in enumerate(top_urls, start=1):
+    for u in top_urls:
         info = get_meta_info_from_url(u)
         competitor_data.append({
-            "position": idx,           # 順位
-            "title":    info["title"], # タイトル
-            "url":      info["url"],   # URL
-     })
+            "URL":               u,
+            "タイトル":          info.get("title", ""),
+            "メタディスクリプション": info.get("description", "")
+        })
 
 
     try:
