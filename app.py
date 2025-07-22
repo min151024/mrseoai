@@ -55,7 +55,6 @@ def index():
     history = get_history_for_user(uid) if uid else []
 
     if request.method == "POST":
-        try:
             skip_metrics = request.form.get("skip_metrics") == "on"
             effective_skip  = skip_metrics
             history = get_history_for_user(uid)
@@ -105,11 +104,6 @@ def index():
                 chatgpt_response=result.get("chatgpt_response", ""),
                 history=history
             )
-        except Exception as e:
-            # ここが必ず Gunicorn のログに残るはず
-            app.logger.error("Unhandled exception in /result:\n" + traceback.format_exc())
-            # ユーザー向けには簡単なエラーメッセージ
-            return "内部サーバーエラーが発生しました。管理者にお問い合わせください。", 500
     return render_template("index.html")
 
 @app.route("/register", methods=["GET", "POST"])
