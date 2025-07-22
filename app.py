@@ -55,58 +55,61 @@ def index():
     history = get_history_for_user(uid) if uid else []
 
     if request.method == "POST":
-        skip_metrics = request.form.get("skip_metrics") == "on"
-        effective_skip  = skip_metrics
-        history = get_history_for_user(uid)
-
-        # スキップ指定がない場合のみ認証チェック
-        if not skip_metrics:
-            if not is_authenticated():
-                flash("まずはログインしてください")
-                return redirect(url_for("login"))
-            oauth_ready = is_oauth_authenticated()
-            if not oauth_ready:
-                flash("GA/GSC連携がありません。スキップモードで分析します。")
-                effective_skip = True
-
-            user_skip = request.form.get("skip_metrics") == "on"
-            # OAuth未連携でも分析したい場合は強制フォールバック
-            effective_skip = user_skip or not oauth_ready
-
-            # ③ OAuthが済んでいない & ユーザーが明示的に連携希望しないときは注意を出す
-            if not user_skip and not oauth_ready:
-                flash("Google Analytics/Search Console 連携がありません。データ連携なしモードで分析します。")
-
-
-        input_url = request.form["url"]
-        site_url  = to_sc_property(input_url)
-        result = process_seo_improvement(site_url, skip_metrics=effective_skip)
-
-        if uid:
-            doc = {
-                "uid":            uid,
-                "input_url":      input_url,
-                "result":         result,
-                "timestamp":      datetime.utcnow()
-            }
-            db.collection("improvements").add(doc)
-            # 追加後、再取得して最新順にする
+        try:
+            skip_metrics = request.form.get("skip_metrics") == "on"
+            effective_skip  = skip_metrics
             history = get_history_for_user(uid)
 
+            # スキップ指定がない場合のみ認証チェック
+            if not skip_metrics:
+                if not is_authenticated():
+                    flash("まずはログインしてください")
+                    return redirect(url_for("login"))
+                oauth_ready = is_oauth_authenticated()
+                if not oauth_ready:
+                    flash("GA/GSC連携がありません。スキップモードで分析します。")
+                    effective_skip = True
 
-        return render_template(
-            "result.html",
-            site_url=input_url,
-            table_html=result["table_html"],
-            chart_labels=result["chart_labels"],
-            chart_data=result["chart_data"],
-            competitors=result["competitors"],
-            chatgpt_response=result.get("chatgpt_response", ""),
-            history=history
-        )
+                user_skip = request.form.get("skip_metrics") == "on"
+                # OAuth未連携でも分析したい場合は強制フォールバック
+                effective_skip = user_skip or not oauth_ready
 
-    # GET のときは誰でも index.html を表示
-    return render_template("index.html", history=history)
+                # ③ OAuthが済んでいない & ユーザーが明示的に連携希望しないときは注意を出す
+                if not user_skip and not oauth_ready:
+                    flash("Google Analytics/Search Console 連携がありません。データ連携なしモードで分析します。")
+
+
+            input_url = request.form["url"]
+            site_url  = to_sc_property(input_url)
+            result = process_seo_improvement(site_url, skip_metrics=effective_skip)
+
+            if uid:
+                doc = {
+                    "uid":            uid,
+                    "input_url":      input_url,
+                    "result":         result,
+                    "timestamp":      datetime.utcnow()
+                }
+                db.collection("improvements").add(doc)
+                # 追加後、再取得して最新順にする
+                history = get_history_for_user(uid)
+
+
+            return render_template(
+                "result.html",
+                site_url=input_url,
+                table_html=result["table_html"],
+                chart_labels=result["chart_labels"],
+                chart_data=result["chart_data"],
+                competitors=result["competitors"],
+                chatgpt_response=result.get("chatgpt_response", ""),
+                history=history
+            )
+        except Exception as e:
+            # ここが必ず Gunicorn のログに残るはず
+            app.logger.error("Unhandled exception in /result:\n" + traceback.format_exc())
+            # ユーザー向けには簡単なエラーメッセージ
+            return "内部サーバーエラーが発生しました。管理者にお問い合わせください。", 500
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -184,7 +187,6 @@ def logout():
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
-    try:
     # 認証チェック
         if not session.get("user_authenticated") or not session.get("uid"):
             return redirect(url_for("login"))
@@ -266,11 +268,6 @@ def result():
             competitors=competitors,
             history=history
         )
-    except Exception as e:
-        # ここが必ず Gunicorn のログに残るはず
-        app.logger.error("Unhandled exception in /result:\n" + traceback.format_exc())
-        # ユーザー向けには簡単なエラーメッセージ
-        return "内部サーバーエラーが発生しました。管理者にお問い合わせください。", 500
 
 @app.route("/delete_improvement", methods=["POST"])
 def delete_improvement():
