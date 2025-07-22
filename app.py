@@ -110,6 +110,7 @@ def index():
             app.logger.error("Unhandled exception in /result:\n" + traceback.format_exc())
             # ユーザー向けには簡単なエラーメッセージ
             return "内部サーバーエラーが発生しました。管理者にお問い合わせください。", 500
+    return render_template("index.html")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
