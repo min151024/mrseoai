@@ -266,6 +266,33 @@ def result():
 def result_get():
     return redirect(url_for("index"))
 
+@app.route("/history", methods=["GET"])
+def history():
+    # 認証チェック
+    if not session.get("user_authenticated") or not session.get("uid"):
+        flash("まずはログインしてください", "warning")
+        return redirect(url_for("login"))
+
+    uid = session["uid"]
+    # Firestore からユーザーの履歴を取得
+    docs = (
+        db.collection("improvements")
+          .where("uid", "==", uid)
+          .order_by("timestamp", direction=firestore.Query.DESCENDING)
+          .stream()
+    )
+    history = []
+    for d in docs:
+        rec = d.to_dict()
+        history.append({
+            "id":        d.id,
+            "timestamp": rec["timestamp"].strftime("%Y-%m-%d %H:%M"),
+            "url":       rec["input_url"],
+            "response":  rec["result"].get("chatgpt_response","")
+        })
+
+    return render_template("history.html", history=history)
+
 @app.route("/delete_improvement", methods=["POST"])
 def delete_improvement():
     if not session.get("user_authenticated"):

@@ -88,38 +88,40 @@ new Chart(ctx, {
     </div> 
     
 <section>
-    <h2>過去の改善提案一覧</h2>
-        {% if history %}
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr>
-                <th class="border px-2 py-1">日時</th>
-                <th class="border px-2 py-1">入力 URL</th>
-                <th class="px-2 py-1">改善案</th>
-                <th class="border px-2 py-1">削除</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for item in history %}
-              <tr class="border-t">
-                <td class="border px-2 py-1">{{ item.timestamp }}</td>
-                <td class="border px-2 py-1">
-                  <a href="{{ item.input_url }}" target="_blank">{{ item.input_url }}</a>
-                </td>
-                <td class="border px-2 py-1 preserve-newlines">{ item.chatgpt_response}</td>
-                <td class="border px-2 py-1">
-                  <form method="POST" action="{{ url_for('delete_improvement') }}">
-                    <input type="hidden" name="doc_id" value="{{ item.id }}">
-                    <button type="submit">削除</button>
-                  </form>                  
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <p>まだ改善提案の履歴はありません。</p>
-        {% endif %}
+  <h2>過去の改善提案一覧</h2>
+  {% if history %}
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr>
+          <th class="border px-2 py-1">日時</th>
+          <th class="border px-2 py-1">入力 URL</th>
+          <th class="border px-2 py-1">改善案</th>
+          <th class="border px-2 py-1">削除</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in history %}
+        <tr class="border-t">
+          <td class="border px-2 py-1">{{ item.timestamp }}</td>
+          <td class="border px-2 py-1">
+            <a href="{{ item.input_url }}" target="_blank">{{ item.input_url }}</a>
+          </td>
+          <td class="border px-2 py-1 preserve-newlines">
+            {{ item.chatgpt_response | replace('\n', '<br>') | safe }}
+          </td>
+          <td class="border px-2 py-1">
+            <form method="POST" action="{{ url_for('delete_improvement') }}">
+              <input type="hidden" name="doc_id" value="{{ item.id }}">
+              <button type="submit" onclick="return confirm('本当に削除しますか？')">削除</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>まだ改善提案の履歴はありません。</p>
+  {% endif %}
 </section>
 </body>
 </html>
