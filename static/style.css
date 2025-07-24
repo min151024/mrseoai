@@ -195,3 +195,41 @@ nav a:hover {
   .site-footer a:hover {
     text-decoration: underline;
   }
+
+  .suggestion-box {
+    background-color: #fffef5;
+    border: 2px solid #ffd966;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin-bottom: 2rem;
+    }
+    
+    /* 過去の改善提案のセル内改行許可 */
+    .preserve-newlines {
+    white-space: pre-line;
+    }
+    
+    /* 競合サイト情報テーブルヘッダー強調 */
+    .competitor-table th {
+    background-color: #e9ecef;
+    font-size: 1rem;
+    padding: 0.75rem;
+    }
+    
+    /* レスポンシブ対応 */
+    @media (max-width: 768px) {
+    .chatgpt-response {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+    }
+    
+    th, td {
+    padding: 0.5rem;
+    }
+    }

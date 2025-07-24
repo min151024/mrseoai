@@ -14,7 +14,7 @@
       <tr class="border-t">
         <td class="px-2 py-1">{{ item.timestamp }}</td>
         <td class="px-2 py-1"><a href="{{ item.input_url }}" target="_blank">{{ item.input_url }}</a></td>
-        <td class="px-2 py-1">{{ item.result.chatgpt_response }}</td>
+        <td class="px-2 py-1 preserve-newlines">{ item.chatgpt_response }</td>
         <td>
           <form method="POST" action="{{ url_for('delete_improvement') }}">
             <input type="hidden" name="doc_id" value="{{ item.id }}">
