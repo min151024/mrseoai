@@ -12,7 +12,7 @@
     <div>
       <a href="{{ url_for('index') }}">トップ</a>
       {% if session.credentials %}
-        <a href="{{ url_for('result') }}">過去の改善提案</a>
+        <a href="{{ url_for('history') }}">過去の改善提案</a>
       {% else %}
         <a href="{{ url_for('login') }}">ログイン</a>
       {% endif %}
