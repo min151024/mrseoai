@@ -55,55 +55,55 @@ def index():
     history = get_history_for_user(uid) if uid else []
 
     if request.method == "POST":
-        skip_metrics = request.form.get("skip_metrics") == "on"
-        effective_skip  = skip_metrics
-        history = get_history_for_user(uid)
-
-        # スキップ指定がない場合のみ認証チェック
-        if not skip_metrics:
-            if not is_authenticated():
-                flash("まずはログインしてください")
-                return redirect(url_for("login"))
-            oauth_ready = is_oauth_authenticated()
-            if not oauth_ready:
-                flash("GA/GSC連携がありません。スキップモードで分析します。")
-                effective_skip = True
-
-            user_skip = request.form.get("skip_metrics") == "on"
-            # OAuth未連携でも分析したい場合は強制フォールバック
-            effective_skip = user_skip or not oauth_ready
-
-            # ③ OAuthが済んでいない & ユーザーが明示的に連携希望しないときは注意を出す
-            if not user_skip and not oauth_ready:
-                flash("Google Analytics/Search Console 連携がありません。データ連携なしモードで分析します。")
-
-
-        input_url = request.form["url"]
-        site_url  = to_sc_property(input_url)
-        result = process_seo_improvement(site_url, skip_metrics=effective_skip)
-
-        if uid:
-            doc = {
-                "uid":            uid,
-                "input_url":      input_url,
-                "result":         result,
-                "timestamp":      datetime.utcnow()
-            }
-            db.collection("improvements").add(doc)
-            # 追加後、再取得して最新順にする
+            skip_metrics = request.form.get("skip_metrics") == "on"
+            effective_skip  = skip_metrics
             history = get_history_for_user(uid)
 
+            # スキップ指定がない場合のみ認証チェック
+            if not skip_metrics:
+                if not is_authenticated():
+                    flash("まずはログインしてください")
+                    return redirect(url_for("login"))
+                oauth_ready = is_oauth_authenticated()
+                if not oauth_ready:
+                    flash("GA/GSC連携がありません。スキップモードで分析します。")
+                    effective_skip = True
 
-        return render_template(
-            "result.html",
-            site_url=input_url,
-            table_html=result["table_html"],
-            chart_labels=result["chart_labels"],
-            chart_data=result["chart_data"],
-            competitors=result["competitors"],
-            chatgpt_response=result.get("chatgpt_response", ""),
-            history=history
-        )
+                user_skip = request.form.get("skip_metrics") == "on"
+                # OAuth未連携でも分析したい場合は強制フォールバック
+                effective_skip = user_skip or not oauth_ready
+
+                # ③ OAuthが済んでいない & ユーザーが明示的に連携希望しないときは注意を出す
+                if not user_skip and not oauth_ready:
+                    flash("Google Analytics/Search Console 連携がありません。データ連携なしモードで分析します。")
+
+
+            input_url = request.form["url"]
+            site_url  = to_sc_property(input_url)
+            result = process_seo_improvement(site_url, skip_metrics=effective_skip)
+
+            if uid:
+                doc = {
+                    "uid":            uid,
+                    "input_url":      input_url,
+                    "result":         result,
+                    "timestamp":      datetime.utcnow()
+                }
+                db.collection("improvements").add(doc)
+                # 追加後、再取得して最新順にする
+                history = get_history_for_user(uid)
+
+
+            return render_template(
+                "result.html",
+                site_url=input_url,
+                table_html=result["table_html"],
+                chart_labels=result["chart_labels"],
+                chart_data=result["chart_data"],
+                competitors=result["competitors"],
+                chatgpt_response=result.get("chatgpt_response", ""),
+                history=history
+            )
     return render_template("index.html")
 
 @app.route("/register", methods=["GET", "POST"])
@@ -180,118 +180,88 @@ def logout():
     return redirect(url_for("register"))
 
 
-@app.route("/result", methods=["POST"])
+@app.route("/result", methods=["GET","POST"])
 def result():
-    if not session.get("user_authenticated") or not session.get("uid"):
-        return redirect(url_for("login"))
-
-    uid = session["uid"]
-
-    # POST/GET 共通で使う変数を先に初期化
-    new_item = None
-    chart_labels = []
-    chart_data   = {}
-    raw_competitors = []
-    competitors     = []
-    history         = []
-
-    input_url = request.form["url"]
-    site_url  = to_sc_property(input_url)
-    data      = process_seo_improvement(site_url)
-
-    # 取得した競合リストを保持
-    raw_competitors = data.get("competitors", [])
-
-        # Firestore に永続化
-    timestamp = datetime.utcnow()
-    db.collection("improvements").add({
-        "uid": uid,
-        "input_url": input_url,
-        "result": data,
-        "timestamp": timestamp
-        })
-
-    # 新規アイテム用データ
-    new_item = {
-        "input_url": input_url,
-        "result":    data,
-        "timestamp": timestamp
-    }
-
-    # グラフ用ラベル＆データ
-    chart_labels = [input_url]
-    chart_data = {
-        "clicks":      [data.get("clicks", 0)],
-        "impressions": [data.get("impressions", 0)],
-        "ctr":         [data.get("ctr", 0)],
-        "position":    [data.get("position", 0)],
-        "conversions": [data.get("conversions", 0)]
-    }
-
-    # 競合リストをテンプレート向けにフォーマット
-    for idx, comp in enumerate(raw_competitors, start=1):
-        competitors.append({
-            "position": idx,                   # 順位を自分でセット
-            "title":    comp.get("タイトル", ""),
-            "url":      comp.get("URL", "")
-        })
-
-    # --- 履歴取得（常に実行） ---
-    docs = (
-        db.collection("improvements")
-        .where("uid", "==", uid)
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
-        .stream()
-    )
-    for d in docs:
-        rec = d.to_dict()
-        history.append({
-            "id":               d.id,
-            "input_url":        rec.get("input_url"),
-            "timestamp":        rec.get("timestamp").strftime("%Y-%m-%d %H:%M"),
-            "chatgpt_response": rec.get("result", {}).get("chatgpt_response", "")
-        })
-
-    return render_template(
-        "result.html",
-        new_item=new_item,
-        result=data,
-        chart_labels=chart_labels,
-        chart_data=chart_data,
-        competitors=competitors,
-        history=history
-    )
-
-@app.route("/result", methods=["GET"])
-def result_get():
-    return redirect(url_for("index"))
-
-@app.route("/history", methods=["GET"])
-def history():
     # 認証チェック
-    if not session.get("user_authenticated") or not session.get("uid"):
-        flash("まずはログインしてください", "warning")
-        return redirect(url_for("login"))
+        if not session.get("user_authenticated") or not session.get("uid"):
+            return redirect(url_for("login"))
 
-    uid = session["uid"]
-    # Firestore からユーザーの履歴を取得
-    docs = (
-        db.collection("improvements")
-          .where("uid", "==", uid)
-          .order_by("timestamp", direction=firestore.Query.DESCENDING)
-          .stream()
-    )
-    history = []
-    for d in docs:
-        rec = d.to_dict()
-        history.append({
-            "id":        d.id,
-            "timestamp": rec["timestamp"].strftime("%Y-%m-%d %H:%M"),
-            "url":       rec["input_url"],
-            "response":  rec["result"].get("chatgpt_response","")
-        })
+        uid = session["uid"]
 
-    return render_template("history.html", history=history)
+        # POST/GET 共通で使う変数を先に初期化
+        new_item = None
+        chart_labels = []
+        chart_data   = {}
+        raw_competitors = []
+        competitors     = []
+        history         = []
+
+        input_url = request.form["url"]
+        site_url  = to_sc_property(input_url)
+        data      = process_seo_improvement(site_url)
+
+        # 取得した競合リストを保持
+        raw_competitors = data.get("competitors", [])
+
+            # Firestore に永続化
+        timestamp = datetime.utcnow()
+        db.collection("improvements").add({
+            "uid": uid,
+            "input_url": input_url,
+            "result": data,
+            "timestamp": timestamp
+         })
+    
+        # 新規アイテム用データ
+        new_item = {
+            "input_url": input_url,
+            "result":    data,
+            "timestamp": timestamp
+        }
+
+        # グラフ用ラベル＆データ
+        chart_labels = [input_url]
+        chart_data = {
+            "clicks":      [data.get("clicks", 0)],
+            "impressions": [data.get("impressions", 0)],
+            "ctr":         [data.get("ctr", 0)],
+            "position":    [data.get("position", 0)],
+            "conversions": [data.get("conversions", 0)]
+        }
+
+        # 競合リストをテンプレート向けにフォーマット
+        for idx, comp in enumerate(raw_competitors, start=1):
+            competitors.append({
+                "position": idx,                   # 順位を自分でセット
+                "title":    comp.get("タイトル", ""),
+                "url":      comp.get("URL", "")
+            })
+
+        # --- 履歴取得（常に実行） ---
+        docs = (
+            db.collection("improvements")
+            .where("uid", "==", uid)
+            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .stream()
+        )
+        for d in docs:
+            rec = d.to_dict()
+            history.append({
+                "id":               d.id,
+                "input_url":        rec.get("input_url"),
+                "timestamp":        rec.get("timestamp").strftime("%Y-%m-%d %H:%M"),
+                "chatgpt_response": rec.get("result", {}).get("chatgpt_response", "")
+            })
+
+        return render_template(
+            "result.html",
+            new_item=new_item,
+            result=data,
+            chart_labels=chart_labels,
+            chart_data=chart_data,
+            competitors=competitors,
+            history=history
+        )
 
 @app.route("/delete_improvement", methods=["POST"])
 def delete_improvement():
