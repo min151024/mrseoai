@@ -8,7 +8,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import traceback
 from datetime import datetime
-from google.cloud import firestore
 #os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
 
 app = Flask(__name__)
@@ -48,6 +47,26 @@ def is_authenticated():
 
 def is_oauth_authenticated():
     return "credentials" in session
+
+def load_history_from_db(uid):
+    """Firestore から当該ユーザーの履歴を降順で取得してリスト化"""
+    history = []
+    docs = (
+        db.collection("improvements")
+          .where("uid", "==", uid)
+          .order_by("timestamp", direction=firestore.Query.DESCENDING)
+          .stream()
+    )
+    for d in docs:
+        rec = d.to_dict()
+        history.append({
+            "id":               d.id,
+            "input_url":        rec.get("input_url"),
+            "timestamp":        rec.get("timestamp").strftime("%Y-%m-%d %H:%M"),
+            "chatgpt_response": rec.get("result", {}).get("chatgpt_response", "")
+        })
+    return history
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -182,6 +201,7 @@ def logout():
 
 @app.route("/result", methods=["GET","POST"])
 def result():
+    if request.method == 'POST':
     # 認証チェック
         if not session.get("user_authenticated") or not session.get("uid"):
             return redirect(url_for("login"))
@@ -260,6 +280,16 @@ def result():
             chart_labels=chart_labels,
             chart_data=chart_data,
             competitors=competitors,
+            history=history
+        )
+    else:
+        if not session.get("user_authenticated") or not session.get("uid"):
+            return redirect(url_for("login"))
+        uid = session["uid"]
+        history = load_history_from_db(uid)
+        return render_template('result.html',
+            chart_labels=[], chart_data={},      # 必要なら空データ
+            result=None, competitors=None,
             history=history
         )
 
