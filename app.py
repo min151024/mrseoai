@@ -72,7 +72,8 @@ def load_history_from_db(uid):
 def index():
     uid = session.get("uid")
     history = get_history_for_user(uid) if uid else []
-
+    competitors = []
+    
     if request.method == "POST":
             skip_metrics = request.form.get("skip_metrics") == "on"
             effective_skip  = skip_metrics
@@ -100,6 +101,7 @@ def index():
             input_url = request.form["url"]
             site_url  = to_sc_property(input_url)
             result = process_seo_improvement(site_url, skip_metrics=effective_skip)
+            competitors = result.get("competitors", [])
 
             if uid:
                 doc = {
@@ -119,11 +121,13 @@ def index():
                 table_html=result["table_html"],
                 chart_labels=result["chart_labels"],
                 chart_data=result["chart_data"],
-                competitors=result["competitors"],
+                competitors=competitors,
                 chatgpt_response=result.get("chatgpt_response", ""),
                 history=history
             )
-    return render_template("index.html")
+    return render_template(
+        "index.html"
+        )
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
