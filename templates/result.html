@@ -52,9 +52,8 @@ new Chart(ctx, {
 });
 </script>
 
-<section class="mt-8">
+<section class="mt-8 competitors-section">
   {% if competitors %}
-    <section class="competitor-section">
       <h3>競合サイト情報</h3>
       <table class="table table-striped">
         <thead>
@@ -76,7 +75,6 @@ new Chart(ctx, {
           {% endfor %}
         </tbody>
       </table>
-    </section>
   {% endif %}
 </section>
 
@@ -86,7 +84,7 @@ new Chart(ctx, {
     </div> 
     
 <section>
-  <h2>過去の改善提案一覧</h2>
+  <h3>過去の改善提案一覧</h3>
   {% if history %}
     <table class="w-full text-left border-collapse">
       <thead>
