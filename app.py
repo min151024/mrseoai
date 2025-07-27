@@ -216,15 +216,10 @@ def result():
         new_item = None
         chart_labels = []
         chart_data   = {}
-        raw_competitors = []
         competitors     = []
-        history         = []
-
         input_url = request.form["url"]
         site_url  = to_sc_property(input_url)
         data      = process_seo_improvement(site_url)
-
-        # 取得した競合リストを保持
         raw_competitors = data.get("competitors", [])
 
             # Firestore に永続化
@@ -291,10 +286,13 @@ def result():
             return redirect(url_for("login"))
         uid = session["uid"]
         history = load_history_from_db(uid)
-        return render_template('result.html',
-            chart_labels=[], chart_data={},      # 必要なら空データ
-            result=None, competitors=None,
-            history=history
+        return render_template(
+            'result.html',
+            chart_labels=[], 
+            chart_data={},      # 必要なら空データ
+            result=None, 
+            history=history,
+            competitors=[]
         )
 
 @app.route("/delete_improvement", methods=["POST"])
