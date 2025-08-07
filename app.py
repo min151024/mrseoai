@@ -214,6 +214,7 @@ def result():
 
         # POST/GET 共通で使う変数を先に初期化
         new_item = None
+        history      = []
         chart_labels = []
         chart_data   = {}
         competitors     = []
