@@ -275,12 +275,14 @@ def result():
 
         return render_template(
             "result.html",
-            new_item=new_item,
-            result=data,
-            chart_labels=chart_labels,
-            chart_data=chart_data,
-            competitors=competitors,
-            history=history
+            site_url=input_url,
+            table_html=data.get("table_html", ""),
+            chart_labels=data.get("chart_labels", []),
+            chart_data=data.get("chart_data", {}),
+            competitors=competitors,                        
+            chatgpt_response=data.get("chatgpt_response",""),
+            history=history,
+            new_item=new_item
         )
     else:
         if not session.get("user_authenticated") or not session.get("uid"):
@@ -288,12 +290,15 @@ def result():
         uid = session["uid"]
         history = load_history_from_db(uid)
         return render_template(
-            'result.html',
-            chart_labels=[], 
-            chart_data={},      # 必要なら空データ
-            result=None, 
+            "result.html",
+            site_url="",
+            table_html="",
+            chart_labels=[],
+            chart_data={},
+            competitors=[],           
+            chatgpt_response="",
             history=history,
-            competitors=[]
+            new_item=None
         )
 
 @app.route("/delete_improvement", methods=["POST"])

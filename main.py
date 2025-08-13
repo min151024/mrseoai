@@ -110,36 +110,51 @@ def process_seo_improvement(site_url, skip_metrics: bool = False):
         target_url = site_url.rstrip("/") + "/"
     print(f"🎯 改善対象ページ: {target_url}")
 
-    # 4. 競合情報取得 & ChatGPT 改善案呼び出し（共通）
-    try:
-        meta_info = get_meta_info_from_url(target_url)
-        keyword   = meta_info.get("title") or meta_info.get("description") or "SEO"
-    except:
-        keyword = "SEO"
+        # 4. 競合情報取得 & ChatGPT 改善案呼び出し（GSCキーワードがある時だけ）
+    # --- GSCの「クエリ」列がある場合のみキーワードとして利用 ---
+    gsc_keywords = []
+    if (not df_this_week.empty) and ("クエリ" in df_this_week.columns):
+        gsc_keywords = [str(k).strip() for k in df_this_week["クエリ"].dropna().tolist() if str(k).strip()]
 
-    try:
-        top_urls         = get_top_competitor_urls(keyword)
-        competitors_info = [get_meta_info_from_url(u) for u in top_urls if u]
-    except:
-        competitors_info = []
+    competitors_info = []
+    competitor_data  = []
+    response         = ""   # ← デフォルトは「生成しない」
 
-    competitor_data = []
-    for u in top_urls:
-        info = get_meta_info_from_url(u)
-        competitor_data.append({
-            "URL":               u,
-            "タイトル":          info.get("title", ""),
-            "メタディスクリプション": info.get("description", "")
-        })
+    if gsc_keywords:  # ← ★キーワードが1つも無ければ SERP/ChatGPT はスキップ
+        # 代表キーワード1つでSERP（必要なら上位N件などに拡張）
+        top_urls = []
+        try:
+            top_urls = get_top_competitor_urls(gsc_keywords[0])
+        except Exception as e:
+            print(f"⚠️ SerpAPI呼び出し失敗: {e}")
+            top_urls = []
 
+        if top_urls:
+            # 競合ページのタイトル/ディスクリプションを取得
+            for idx, u in enumerate(top_urls, start=1):
+                info = get_meta_info_from_url(u)
+                competitors_info.append(info)
+                competitor_data.append({
+                    "URL": u,
+                    "タイトル": info.get("title", ""),
+                    "メタディスクリプション": info.get("description", ""),
+                    "position": idx,
+                    "title": info.get("title", ""),
+                    "url": u
+                })
 
-    try:
-        prompt = build_prompt(target_url, competitors_info, merged_df)
-        response = get_chatgpt_response(prompt)
-        print("💡 ChatGPT改善案:", response)
-    except Exception as e:
-        print(f"⚠️ ChatGPTへのリクエスト失敗: {e}")
-        response = "ChatGPT からの改善提案を取得できませんでした。"
+            # 競合が取れた時だけChatGPT
+            try:
+                prompt = build_prompt(target_url, competitors_info, merged_df)
+                response = get_chatgpt_response(prompt)
+                print("💡 ChatGPT改善案:", response)
+            except Exception as e:
+                print(f"⚠️ ChatGPTへのリクエスト失敗: {e}")
+                response = ""  # 失敗時も空のまま
+        else:
+            print("ℹ️ 競合URLが取得できず、ChatGPT生成はスキップしました。")
+    else:
+        print("ℹ️ GSCキーワードが無いため、SERP/ChatGPTをスキップします。")
 
 
     spreadsheet = get_spreadsheet(SPREADSHEET_ID)

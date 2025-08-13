@@ -1,123 +1,145 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO データ可視化</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SEO データ可視化</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  </style>
 </head>
 <body>
 <nav>
-    <h1>Mr.SEO AI</h1>
-    <div>
-        <a href="{{ url_for('index') }}">トップページ</a>
-        <a href="{{ url_for('result') }}">過去の改善提案</a>
-        <a href="{{ url_for('register') }}">新規登録</a>
-        <a href="{{ url_for('login') }}">ログイン</a>
-    </div>
+  <h1>Mr.SEO AI</h1>
+  <div>
+    <a href="{{ url_for('index') }}">トップページ</a>
+    <!-- 「過去の改善提案」ページが別ルートなら url_for('history') に変更 -->
+    <a href="{{ url_for('result') }}">過去の改善提案</a>
+    <a href="{{ url_for('register') }}">新規登録</a>
+    <a href="{{ url_for('login') }}">ログイン</a>
+  </div>
 </nav>
+
 <h3>SEO 指標グラフ</h3>
 <canvas id="metricsChart" width="800" height="300"></canvas>
 <script>
-{{ table_html | safe }}
 const labels = {{ chart_labels | tojson }};
 const data = {{ chart_data | tojson }};
 const ctx = document.getElementById('metricsChart').getContext('2d');
 new Chart(ctx, {
-    type: 'bar',
-    data: {
+  type: 'bar',
+  data: {
     labels: labels,
     datasets: [
-        { label: 'クリック数',      data: data.clicks      },
-        { label: '表示回数',      data: data.impressions },
-        { label: 'CTR（%）',      data: data.ctr         },
-        { label: '平均順位',      data: data.position    },
-        { label: 'コンバージョン数', data: data.conversions }
+      { label: 'クリック数',      data: data.clicks      },
+      { label: '表示回数',        data: data.impressions },
+      { label: 'CTR（%）',        data: data.ctr         },
+      { label: '平均順位',        data: data.position    },
+      { label: 'コンバージョン数', data: data.conversions }
     ]
-    },
-    options: {
+  },
+  options: {
     responsive: true,
     plugins: {
-        legend:   { position: 'top' },
-        title:    { display: true, text: '入力 URL の SEO 指標' }
+      legend: { position: 'top' },
+      title:  { display: true, text: '入力 URL の SEO 指標' }
     },
     scales: { y: { beginAtZero: true } }
-    }
+  }
 });
 </script>
 
-<section>
-  <h3>競合サイト情報</h3>
-  {% if competitors %}
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>順位</th>
-            <th>タイトル</th>
-            <th>URL</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for comp in competitors %}
-          <tr>
-            <td>{{ comp.position }}</td>
-            <td>{{ comp.title }}</td>
-            <td>
-              <a href="{{ comp.url }}" target="_blank">{{ comp.url }}</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-  {% endif %}
+{% if table_html %}
+<section class="mt-8">
+  <h3>ページ別 指標一覧</h3>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>クリック数</th>
+        <th>表示回数</th>
+        <th>CTR（%）</th>
+        <th>平均順位</th>
+        <th>コンバージョン数</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ table_html | safe }}  {# ← rows 部分を安全に挿入 #}
+    </tbody>
+  </table>
 </section>
+{% endif %}
 
+{% if competitors %}
+<section class="mt-8 competitors-section">
+  <h3>競合サイト情報</h3>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>順位</th>
+        <th>タイトル</th>
+        <th>URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for comp in competitors %}
+      <tr>
+        <td>{{ comp.position }}</td>
+        <td>{{ comp.title }}</td>
+        <td><a href="{{ comp.url }}" target="_blank" rel="noopener">{{ comp.url }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if chatgpt_response %}
 <h3>改善案</h3>
-    <div class="chatgpt-response">
-      {{ chatgpt_response | replace('\n', '<br>') | safe }}
-    </div> 
-    
-<section>
+<div class="chatgpt-response">
+  {{ chatgpt_response | replace('\n', '<br>') | safe }}
+</div>
+{% endif %}
+
+<section class="mt-8">
   <h3>過去の改善提案一覧</h3>
   {% if history %}
-    <table class="w-full text-left border-collapse">
-      <thead>
-        <tr>
-          <th class="border px-2 py-1">日時</th>
-          <th class="border px-2 py-1">入力 URL</th>
-          <th class="border px-2 py-1">改善案</th>
-          <th class="border px-2 py-1">削除</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in history %}
-        <tr class="border-t">
-          <td class="border px-2 py-1">{{ item.timestamp }}</td>
-          <td class="border px-2 py-1">
-            <a href="{{ item.input_url }}" target="_blank">{{ item.input_url }}</a>
-          </td>
-          <td class="border px-2 py-1 preserve-newlines">
-            {{ item.chatgpt_response | replace('\n', '<br>') | safe }}
-          </td>
-          <td class="border px-2 py-1">
-            <form method="POST" action="{{ url_for('delete_improvement') }}">
-              <input type="hidden" name="doc_id" value="{{ item.id }}">
-              <button type="submit" onclick="return confirm('本当に削除しますか？')">削除</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <table class="w-full text-left border-collapse">
+    <thead>
+      <tr>
+        <th class="border px-2 py-1">日時</th>
+        <th class="border px-2 py-1">入力 URL</th>
+        <th class="border px-2 py-1">改善案</th>
+        <th class="border px-2 py-1">削除</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in history %}
+      <tr class="border-t">
+        <td class="border px-2 py-1">{{ item.timestamp }}</td>
+        <td class="border px-2 py-1">
+          <a href="{{ item.input_url }}" target="_blank" rel="noopener">{{ item.input_url }}</a>
+        </td>
+        <td class="border px-2 py-1 preserve-newlines">
+          {{ item.chatgpt_response | replace('\n', '<br>') | safe }}
+        </td>
+        <td class="border px-2 py-1">
+          <form method="POST" action="{{ url_for('delete_improvement') }}">
+            <input type="hidden" name="doc_id" value="{{ item.id }}">
+            <button type="submit" onclick="return confirm('本当に削除しますか？')">削除</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
   {% else %}
     <p>まだ改善提案の履歴はありません。</p>
   {% endif %}
 </section>
+
 </body>
 </html>
