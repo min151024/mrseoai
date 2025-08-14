@@ -6,8 +6,8 @@ import firebase_admin
 from firebase_admin import credentials, firestore, auth as firebase_auth
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
-import traceback
 from datetime import datetime
+from google.cloud import firestore
 #os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
 
 app = Flask(__name__)
@@ -16,8 +16,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 
-cred = credentials.Certificate("credentials.json")
-firebase_admin.initialize_app(cred)
+#cred = credentials.Certificate("credentials.json")
+#firebase_admin.initialize_app(cred)
+try:
+    firebase_admin.get_app()
+except ValueError:
+    firebase_admin.initialize_app()
 db = firestore.Client()
 
 def to_sc_property(url: str) -> str:
