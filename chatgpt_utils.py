@@ -1,17 +1,27 @@
 import os
 from openai import OpenAI
 import pandas as pd
-from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
 
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# --- OpenAIクライアントを遅延初期化（起動時クラッシュ防止） ---
+_client = None
+def get_openai_client() -> OpenAI:
+    global _client
+    if _client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            # 起動エラーは避け、呼び出し時に明示エラー
+            raise RuntimeError("OPENAI_API_KEY が未設定です（Cloud Run の環境変数に設定してください）")
+        _client = OpenAI(api_key=api_key)
+        # もしくは _client = OpenAI() でもOK（環境変数を自動検出）
+    return _client
 
 def fetch_service_description(url: str) -> str:
     """ターゲット URL からサイトの自己紹介文（meta description, og:description, h1＋p）を取得する"""
     try:
-        res = requests.get(url, timeout=5)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        res = requests.get(url, timeout=5, headers=headers)
         res.raise_for_status()
         soup = BeautifulSoup(res.text, "html.parser")
 
@@ -42,20 +52,21 @@ def fetch_service_description(url: str) -> str:
 def build_prompt(target_url, competitors_info, ga_data):
     """対象URL、競合ページ情報、GAデータからChatGPT用のプロンプトを作成する"""
     service_desc = fetch_service_description(target_url)
+
     # 競合ページ情報をテキスト化
-    competitors_text = ""
-    for comp in competitors_info:
-        title = comp.get("title", "タイトルなし")
-        description = comp.get("description", "ディスクリプションなし")
-        competitors_text += f"・タイトル: {title}\n  ディスクリプション: {description}\n\n"
+    lines = []
+    for comp in competitors_info or []:
+        title = comp.get("title", comp.get("タイトル", "タイトルなし"))
+        description = comp.get("description", comp.get("メタディスクリプション", "ディスクリプションなし"))
+        lines.append(f"・タイトル: {title}\n  ディスクリプション: {description}")
+    competitors_text = "\n\n".join(lines) if lines else "（競合メタ情報なし）"
 
     # Google Analyticsデータをテキスト化
-    if ga_data is not None and not ga_data.empty:
+    if isinstance(ga_data, pd.DataFrame) and not ga_data.empty:
         ga_text = ga_data.to_string(index=False)
     else:
         ga_text = "Google Analytics データなし"
 
-    # 最終プロンプト組み立て
     prompt = f"""
 対象ページ: {target_url}
 
@@ -72,11 +83,13 @@ def build_prompt(target_url, competitors_info, ga_data):
 """
     return prompt
 
-# ChatGPTに投げる
-def get_chatgpt_response(prompt):
+def get_chatgpt_response(prompt: str) -> str | None:
+    """OpenAIに投げて応答を返す"""
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # または "gpt-4"
+        client = get_openai_client()
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # 任意で上書き可。旧: gpt-3.5-turbo
+        resp = client.chat.completions.create(
+            model=model,
             messages=[
                 {"role": "system", "content": "あなたはSEOの専門家です。"},
                 {"role": "user", "content": prompt}
@@ -84,7 +97,7 @@ def get_chatgpt_response(prompt):
             max_tokens=1000,
             temperature=0.7
         )
-        return response.choices[0].message.content.strip()
+        return (resp.choices[0].message.content or "").strip()
     except Exception as e:
         print("❌ ChatGPT APIエラー:", e)
         return None

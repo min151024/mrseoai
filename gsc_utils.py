@@ -1,15 +1,14 @@
 import pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from oauth2client.service_account import ServiceAccountCredentials
+from google.auth import default as google_auth_default 
 from urllib.parse import urlparse
 
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
-SERVICE_ACCOUNT_FILE = 'credentials.json'
 
 def get_search_console_service():
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
-    return build('searchconsole', 'v1', credentials=credentials)
+    creds, _ = google_auth_default(scopes=SCOPES)
+    return build('searchconsole', 'v1', credentials=creds, cache_discovery=False)
 
 def normalize_url(url: str) -> str:
     parsed = urlparse(url)

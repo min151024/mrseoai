@@ -3,7 +3,7 @@ from flask import Flask, flash, jsonify, redirect, session, url_for, request, re
 from oauth import create_flow, store_credentials_in_session
 from main import process_seo_improvement, get_history_for_user
 import firebase_admin
-from firebase_admin import credentials, firestore, auth as firebase_auth
+from firebase_admin import firestore, auth as firebase_auth
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 from datetime import datetime

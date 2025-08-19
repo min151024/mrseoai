@@ -1,16 +1,25 @@
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.auth import default as google_auth_default  # ★ ADC
+# oauth2client / credentials.json は使わない
 
-SHEET_SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = 'credentials.json'
+# 推奨スコープ（/feeds は古いので置き換え）
+SHEET_SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
 
-# gspread認証
-credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SHEET_SCOPES)
-gc = gspread.authorize(credentials)
+_gc = None
+def get_gspread_client():
+    """ADCで認証した gspread クライアント（遅延初期化）"""
+    global _gc
+    if _gc is None:
+        creds, _ = google_auth_default(scopes=SHEET_SCOPES)
+        _gc = gspread.authorize(creds)
+    return _gc
 
 def get_spreadsheet(spreadsheet_id):
     """スプレッドシートを開く"""
-    return gc.open_by_key(spreadsheet_id)
+    return get_gspread_client().open_by_key(spreadsheet_id)
 
 def get_or_create_worksheet(spreadsheet, title, rows="100", cols="20"):
     """既存シートを取得 or なければ作成"""
@@ -23,11 +32,11 @@ def get_or_create_worksheet(spreadsheet, title, rows="100", cols="20"):
     return worksheet
 
 def update_sheet(worksheet, headers, data):
-    """指定したシートをクリアしてデータを書き込む"""
+    """指定したシートをクリアしてデータを書き込む（まとめて更新）"""
     worksheet.clear()
-    worksheet.append_row(headers)
-    for row in data:
-        worksheet.append_row(row)
+    # A1 からヘッダー＋データを一括更新（APIコールを削減）
+    values = [headers] + data
+    worksheet.update('A1', values)
 
 def write_competitor_data_to_sheet(spreadsheet, competitor_data):
     worksheet = get_or_create_worksheet(spreadsheet, "競合分析")

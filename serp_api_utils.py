@@ -4,18 +4,23 @@ from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 import requests
 
-load_dotenv()
-API_KEY = os.getenv("SERPAPI_API_KEY")
+def _serpapi_key():
+    return os.getenv("SERPAPI_KEY") or os.getenv("SERPAPI_API_KEY")
 
 def get_top_competitor_urls(keyword, num_results=5):
-    # キーワードが無ければ呼ばない（SEOフォールバック廃止）
+    """SerpAPIで上位サイトのURLを取得"""
     if not keyword or not str(keyword).strip():
+        return []
+
+    api_key = _serpapi_key()
+    if not api_key:
+        print("⚠️ SERPAPI_KEY が未設定のためスキップします。")
         return []
 
     params = {
         "engine": "google",
         "q": keyword,
-        "api_key": API_KEY,
+        "api_key": api_key,
         "num": num_results,
         "hl": "ja",  # 日本語
         "gl": "jp",  # 日本
