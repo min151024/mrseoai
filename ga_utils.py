@@ -1,21 +1,12 @@
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import RunReportRequest, DateRange, Metric, Dimension
-from google.oauth2 import service_account
 import os
-import base64
 import pandas as pd
 from urllib.parse import urlparse
 import config
 from flask import abort
 
 # Google Analyticsの認証
-SERVICE_ACCOUNT_FILE = "credentials.json"
-
-if "GOOGLE_CREDS_BASE64" in os.environ:
-    with open(SERVICE_ACCOUNT_FILE, "wb") as f:
-        f.write(base64.b64decode(os.environ["GOOGLE_CREDS_BASE64"]))
-
-credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
 client = BetaAnalyticsDataClient()
 
 
