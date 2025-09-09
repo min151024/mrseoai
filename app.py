@@ -1,13 +1,13 @@
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 from flask import Flask, flash, jsonify, redirect, session, url_for, request, render_template, abort
 from oauth import create_flow, store_credentials_in_session
 from main import process_seo_improvement, get_history_for_user
 import firebase_admin
-from firebase_admin import firestore, auth as firebase_auth
+from firebase_admin import firestore as fa_firestore, auth as firebase_auth
+from oauth import exchange_code_and_store, get_user_credentials
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 from datetime import datetime
-from google.cloud import firestore
 #os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
 
 app = Flask(__name__)
@@ -22,35 +22,84 @@ try:
     firebase_admin.get_app()
 except ValueError:
     firebase_admin.initialize_app()
-db = firestore.Client()
+db = fa_firestore.client()
 
-def to_sc_property(url: str) -> str:
-    # 1) スキームがなければ https:// を付与してパースし直し
+def to_sc_property(raw_url: str) -> str:
+    """
+    入力URLをSearch Consoleの siteUrl 形式（例: https://example.com/）に正規化する。
+    - スキームが無ければ https:// を付与
+    - パス等は捨ててオリジン（スキーム + ホスト + 末尾スラッシュ）に丸める
+    - 日本語ドメインや大文字等も想定
+    例:
+      "example.com/blog?a=b" -> "https://example.com/"
+      "http://EXAMPLE.com"  -> "http://example.com/"
+    """
+    url = raw_url.strip()
+
+    # 空ならエラー
+    if not url:
+        raise ValueError("URLが空です。")
+
+    # スキームが無ければ https:// を前置
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
-    parsed = urlparse(url)
 
-    # 2) hostname が取れないなら不正 URL
-    hostname = parsed.hostname
-    if hostname is None:
-        abort(400, "URLが不正です。https://example.com のように入力してください。")
+    # 解析
+    p = urlparse(url)
 
-    # 3) path, query, fragment があれば「URL プレフィックス」と判断
-    has_path = parsed.path.strip("/ ")
-    if has_path or parsed.query or parsed.fragment:
-        # https://example.com/sub/path の形をそのまま返す
-        prefix = f"{parsed.scheme}://{parsed.netloc}{parsed.path.rstrip('/')}"
-        return prefix
+    # netloc（ホスト部）が無いのは不正
+    if not p.netloc:
+        raise ValueError(f"URLが不正です: {raw_url}")
 
-    # 4) それ以外は「ドメインプロパティ」として扱う
-    domain = hostname.replace("www.", "")
-    return f"sc-domain:{domain}"
+    # ホストは小文字に
+    netloc = p.netloc.lower()
+
+    # オリジン + 末尾スラッシュ に統一（Search Console siteUrl 形式）
+    normalized = urlunparse((p.scheme, netloc, "/", "", "", ""))
+
+    return normalized
 
 def is_authenticated():
     return session.get("user_authenticated", False)
 
 def is_oauth_authenticated():
-    return "credentials" in session
+    uid = session.get("uid")
+    if not uid:
+        return False
+    # Firestore に保存済みのトークンがあれば True
+    return get_user_credentials(uid) is not None
+
+def _to_site_root(u: str) -> str:
+    if not u.startswith(("http://","https://")):
+        u = "https://" + u
+    p = urlparse(u)
+    return f"{p.scheme}://{p.netloc}"
+
+def _site_key(root: str) -> str:
+    return root.replace("https://","").replace("http://","").strip("/")
+
+def load_site_config(uid: str | None, input_url: str):
+    """
+    Firestore に sites/{uid}/owned/{siteKey} があればそれを使い、
+    無ければ to_sc_property で推定した値を返す（暫定フォールバック）。
+    """
+    root = _to_site_root(input_url)
+    sc_prop = to_sc_property(root)  # 既定の推定
+    ga_prop = None
+    sheet_id = None
+
+    if uid:
+        doc = (
+            db.collection("sites").document(uid)
+              .collection("owned").document(_site_key(root)).get()
+        )
+        if doc.exists:
+            cfg = doc.to_dict() or {}
+            sc_prop = cfg.get("sc_property") or sc_prop
+            ga_prop = cfg.get("ga_property_id")  # "properties/123..." 推奨
+            sheet_id = cfg.get("sheet_id")
+
+    return root, sc_prop, ga_prop, sheet_id
 
 def load_history_from_db(uid):
     """Firestore から当該ユーザーの履歴を降順で取得してリスト化"""
@@ -58,7 +107,7 @@ def load_history_from_db(uid):
     docs = (
         db.collection("improvements")
           .where("uid", "==", uid)
-          .order_by("timestamp", direction=firestore.Query.DESCENDING)
+          .order_by("timestamp", direction=fa_firestore.Query.DESCENDING)
           .stream()
     )
     for d in docs:
@@ -80,31 +129,32 @@ def index():
     
     if request.method == "POST":
             skip_metrics = request.form.get("skip_metrics") == "on"
-            effective_skip  = skip_metrics
-            history = get_history_for_user(uid)
+            uid = session.get("uid")
 
-            # スキップ指定がない場合のみ認証チェック
-            if not skip_metrics:
-                if not is_authenticated():
-                    flash("まずはログインしてください")
-                    return redirect(url_for("login"))
-                oauth_ready = is_oauth_authenticated()
-                if not oauth_ready:
-                    flash("GA/GSC連携がありません。スキップモードで分析します。")
-                    effective_skip = True
+            # ユーザーOAuth資格情報（ない場合は None）
+            creds = get_user_credentials(uid) if uid else None
+            oauth_ready = creds is not None
 
-                user_skip = request.form.get("skip_metrics") == "on"
-                # OAuth未連携でも分析したい場合は強制フォールバック
-                effective_skip = user_skip or not oauth_ready
+            # 連携が無ければスキップに落とす
+            effective_skip = skip_metrics or (not oauth_ready)
+            if not skip_metrics and not oauth_ready:
+                flash("Google Analytics / Search Console の連携がありません。データ連携なしで実行します。")
 
-                # ③ OAuthが済んでいない & ユーザーが明示的に連携希望しないときは注意を出す
-                if not user_skip and not oauth_ready:
-                    flash("Google Analytics/Search Console 連携がありません。データ連携なしモードで分析します。")
+            input_url = request.form["url"].strip()
+            site_root, sc_property, ga_property, sheet_id = load_site_config(uid, input_url)
 
-
-            input_url = request.form["url"]
-            site_url  = to_sc_property(input_url)
-            result = process_seo_improvement(site_url, skip_metrics=effective_skip)
+            try:
+                result = process_seo_improvement(
+                    url=input_url,               # 画面表示用にフルURLを渡す
+                    creds=creds,                 # ★ ユーザーOAuth（NoneでもOK：内部でskipする実装に）
+                    sc_property=sc_property,     # ★ "sc-domain:..." or "https://..."
+                    ga_property=ga_property,     # ★ "properties/123..."（未設定なら None でOK）
+                    sheet_id=sheet_id,           # ★ 任意
+                    skip_metrics=effective_skip, # ★ TrueならGA/GSC/Sheetsを完全スキップ
+                )
+            except Exception as e:
+                app.logger.exception("analysis failed")
+                abort(500, "内部エラーが発生しました。設定を見直してください。")
             competitors = result.get("competitors", [])
 
             if uid:
@@ -195,10 +245,10 @@ def login():
 
 @app.route("/oauth2callback")
 def oauth2callback():
-    flow = create_flow()
-    flow.fetch_token(authorization_response=request.url)
-    credentials = flow.credentials
-    store_credentials_in_session(credentials)
+    uid = session.get("uid")
+    if not uid:
+        return redirect(url_for("login"))
+    exchange_code_and_store(uid)  # ← Firestoreに保存＋セッションにも入れる
     return redirect(url_for("index"))
 
 @app.route("/logout")
@@ -265,7 +315,7 @@ def result():
         docs = (
             db.collection("improvements")
             .where("uid", "==", uid)
-            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .order_by("timestamp", direction=fa_firestore.Query.DESCENDING)
             .stream()
         )
         for d in docs:

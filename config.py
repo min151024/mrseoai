@@ -1,9 +1,11 @@
-GA_PROPERTY_MAP = {
-    # ドメイン単位
-    "example.com": "483491280",
-    "another.com": "123456789",
+# config.py
+GOOGLE_OAUTH_SCOPES = [
+    "https://www.googleapis.com/auth/analytics.readonly",
+    "https://www.googleapis.com/auth/webmasters.readonly",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",  # Driveにシート新規作成するなら
+]
 
-    # URLプレフィックス単位（パス末尾はスラッシュなしで統一）
-    "https://example.com/blog": "483491280",
-    "https://another.com/shop": "123456789",
-}
+# 収容コレクション名
+FIRESTORE_COLLECTION_USER_TOKENS = "user_google_tokens"
+FIRESTORE_COLLECTION_SITES      = "sites"  # サブコレクションに {uid}/owned/{siteKey}
