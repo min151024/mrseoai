@@ -120,7 +120,7 @@ def load_history_from_db(uid):
         })
     return history
 
-def _no_keywords(result: dict) -> bool:
+def has_keywords(result: dict) -> bool:
     """結果オブジェクトから 'キーワードが無い' を推定"""
     if not result:
         return True
@@ -166,14 +166,9 @@ def index():
             except Exception as e:
                 app.logger.exception("analysis failed")
                 abort(500, "内部エラーが発生しました。設定を見直してください。")
-            if not effective_skip and _no_keywords(result):
-            # 画面に分かりやすいメッセージ
-                friendly = (
-                    "⚠️ 検索キーワードが取得できませんでした。"
-                    "Search Console に対象サイトのデータがあるか、対象期間/プロパティ設定（URLプレフィックス or ドメイン）を見直してください。"
-                )
-                # 履歴には残さない（誤記録防止）
-                return render_template("index.html", result=friendly, history=history)
+            if not effective_skip and not has_keywords(result):
+                flash("⚠️ 検索キーワードが取得できませんでした。Search Console の対象プロパティ/期間/検出対象URLを確認してください。")
+                return redirect(url_for ("index"))
             competitors = result.get("competitors", [])
 
             if uid:
