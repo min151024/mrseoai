@@ -120,6 +120,17 @@ def load_history_from_db(uid):
         })
     return history
 
+def _no_keywords(result: dict) -> bool:
+    """結果オブジェクトから 'キーワードが無い' を推定"""
+    if not result:
+        return True
+    # 候補A: 集計ラベルが空
+    if len(result.get("chart_labels") or []) == 0:
+        # 候補B: プリミティブな件数フラグ（将来用）
+        if result.get("gsc_keyword_count", 0) == 0 and len(result.get("gsc_rows") or []) == 0:
+            return True
+    return False
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -155,6 +166,14 @@ def index():
             except Exception as e:
                 app.logger.exception("analysis failed")
                 abort(500, "内部エラーが発生しました。設定を見直してください。")
+            if not effective_skip and _no_keywords(result):
+            # 画面に分かりやすいメッセージ
+                friendly = (
+                    "⚠️ 検索キーワードが取得できませんでした。"
+                    "Search Console に対象サイトのデータがあるか、対象期間/プロパティ設定（URLプレフィックス or ドメイン）を見直してください。"
+                )
+                # 履歴には残さない（誤記録防止）
+                return render_template("index.html", result=friendly, history=history)
             competitors = result.get("competitors", [])
 
             if uid:
