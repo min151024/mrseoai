@@ -24,6 +24,13 @@
 </nav>
 
 <h3>SEO 指標グラフ</h3>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, msg in messages %}
+      <div class="{{ 'error-box' if category == 'error' else 'info-box' }}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 <canvas id="metricsChart" width="800" height="300"></canvas>
 <script>
 const labels = {{ chart_labels | tojson }};
